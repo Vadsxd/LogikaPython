@@ -8,7 +8,7 @@ class OfflineConnection(Connection):
     def dispose(self, disposing: bool):
         pass
 
-    def internal_open(self):
+    def internal_open(self,  connect_details: str):
         return None
 
     def internal_close(self):

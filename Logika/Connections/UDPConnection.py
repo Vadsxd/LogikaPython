@@ -14,7 +14,7 @@ class UDPConnection(NetConnection):
         self.inQue = ByteQueue(65535)
         self.ipEndpoint = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    def dispose(self, disposing):
+    def dispose(self, disposing: bool):
         if disposing:
             if self.uc is not None:
                 self.uc.close()
@@ -46,7 +46,7 @@ class UDPConnection(NetConnection):
             except:
                 pass
             self.uc = None
-            if se.errno == socket.errno.ENOENT:
+            if se.errno == 11004:
                 raise ECommException(ExcSeverity.Stop, CommError.SystemError, se.strerror)
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, se.strerror)
 
