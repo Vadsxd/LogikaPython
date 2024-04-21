@@ -2,14 +2,6 @@ from enum import Enum
 
 
 class ErrorCode(Enum):
-    BadRequest = 0
-    WriteProtected = 1
-    ArgumentError = 2
-
-    def __str__(self):
-        descriptions = {
-            ErrorCode.BadRequest: "нарушение структуры запроса",
-            ErrorCode.WriteProtected: "защита от записи",
-            ErrorCode.ArgumentError: "недопустимое значение",
-        }
-        return descriptions[self]
+    BadRequest = (0, "нарушение структуры запроса")
+    WriteProtected = (1, "защита от записи")
+    ArgumentError = (2, "недопустимое значение")
