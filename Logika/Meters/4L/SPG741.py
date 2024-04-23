@@ -1,9 +1,9 @@
 from datetime import timedelta
 from enum import Enum
 
+from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Types import MeasureKind
 from Logika4L import Logika4L
-from Logika.Meters.Logika4 import Logika4
 
 
 class ImportantTag(Enum):

@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List
 
@@ -8,7 +9,7 @@ from Logika.Meters.TagDef import TagDef
 from Logika.Meters.Types import ArchiveType, BusProtocolType
 
 
-class Logika4(Meter):
+class Logika4(ABC, Meter):
     dfPressure = "0.000"
     dfMass = "0.000"
     dfVolume = "0.000"
@@ -62,6 +63,7 @@ class Logika4(Meter):
             evt_desc = self.get_ns_description(ns_no)
         return evt_desc
 
+    @abstractmethod
     def get_ns_descriptions(self) -> List[str]:
         pass
 
@@ -165,8 +167,29 @@ class Logika4(Meter):
         else:
             return eu_def
 
+    @abstractmethod
+    def SupportsBaudRateChangeRequests(self) -> bool:
+        pass
+
+    @abstractmethod
+    def MaxBaudRate(self) -> int:
+        pass
+
+    @abstractmethod
+    def SessionTimeout(self):
+        pass
+
+    @abstractmethod
+    def SupportsFastSessionInit(self) -> bool:
+        pass
+
+    @abstractmethod
+    def IdentWord(self) -> int:
+        pass
+
+    @abstractmethod
     def build_eu_dict(self, eu_tags):
-        raise NotImplementedError
+        pass
 
 
 class CalcFieldDef:

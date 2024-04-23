@@ -1,6 +1,9 @@
-from enum import Enum
 import struct
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from enum import Enum
+
+from Logika.Meters.ArchiveDef import ArchiveDef4L
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import TagDef4L
@@ -39,7 +42,7 @@ class ADSFlashRun:
         self.Length = length
 
 
-class Logika4L(Logika4):
+class Logika4L(ABC, Logika4):
     def __init__(self):
         super().__init__()
         self.SupportedByProlog4 = True
@@ -242,10 +245,12 @@ class Logika4L(Logika4):
     def archiveFieldsSort(self):
         return "Device, ArchiveType, FieldOffset"
 
+    @abstractmethod
     def getModelFromImage(self, flashImage):
         pass
 
-    def getAdsFileLayout(self, everyone, model):
+    @abstractmethod
+    def getAdsFileLayout(self, everyone: bool, model: str):
         pass
 
     def readTagDef(self, r):
