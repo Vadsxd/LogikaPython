@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from typing import List
 
+from Logika.Meters.Channel import ChannelKind
 from Logika.Meters.Meter import Meter
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import TagDef
 from Logika.Meters.Types import ArchiveType, BusProtocolType
-from Logika.Meters.Channel import ChannelKind
 
 
 class Logika4(Meter):
@@ -21,7 +21,7 @@ class Logika4(Meter):
     nsDescs = None
 
     def __init__(self):
-        pass
+        super().__init__()
 
     def get_ns_description(self, ns_number: int) -> str:
         if self.nsDescs is None:
@@ -95,7 +95,8 @@ class Logika4(Meter):
         else:
             return f"ТВ{TVnum} "
 
-    def advanceReadPtr(self, archiveType: ArchiveType, time: datetime) -> datetime:
+    @staticmethod
+    def advanceReadPtr(archiveType: ArchiveType, time: datetime) -> datetime:
         if archiveType == ArchiveType.Hour:
             return time + timedelta(days=1)
         elif archiveType in (ArchiveType.Day, ArchiveType.Control):
@@ -183,4 +184,3 @@ class CalcFieldDef:
     @staticmethod
     def get_calculated_fields():
         return []
-

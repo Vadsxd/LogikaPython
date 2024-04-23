@@ -16,6 +16,7 @@ class ImportantTag(Enum):
 
 class TSPG741(Logika4L):
     def __init__(self):
+        super().__init__()
         self.sensors = ["ПД1", "ПД2", "ПД3", "ПД4", "ПД5", "ТС1", "ТС2", "СГ1", "СГ2"]
 
         self.spParamMap = [
@@ -150,8 +151,7 @@ class TSPG741(Logika4L):
 
         return eus
 
-    @staticmethod
-    def getAdsFileLayout(everyone):
+    def getAdsFileLayout(self, everyone, model):
         if everyone:
             return [{"Start": 0x00000, "Length": 0x17C80}]
         else:
@@ -160,6 +160,5 @@ class TSPG741(Logika4L):
                 {"Start": 0x13440, "Length": 0x4840}
             ]
 
-    @staticmethod
-    def getModelFromImage():
+    def getModelFromImage(self, flashImage):
         return ""
