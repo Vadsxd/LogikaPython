@@ -3,9 +3,9 @@ import threading
 
 from select import select
 
+from Logika.Connections.Connection import ConnectionState, PurgeFlags
 from Logika.Connections.NetConnection import NetConnection
 from Logika.ECommException import ECommException, ExcSeverity, CommError
-from Logika.Connections.Connection import ConnectionState, PurgeFlags
 
 
 class TCPConnection(NetConnection):

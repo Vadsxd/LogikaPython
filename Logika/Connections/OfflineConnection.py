@@ -8,8 +8,8 @@ class OfflineConnection(Connection):
     def dispose(self, disposing: bool):
         pass
 
-    def internal_open(self,  connect_details: str):
-        return None
+    def internal_open(self, connect_details: str):
+        connect_details = None
 
     def internal_close(self):
         pass
@@ -23,8 +23,8 @@ class OfflineConnection(Connection):
     def on_set_read_timeout(self, new_timeout):
         pass
 
-    def internal_purge_comms(self, what):
+    def InternalPurgeComms(self, what):
         pass
 
-    def is_conflicting_with(self, target):
+    def isConflictingWith(self, target):
         return False

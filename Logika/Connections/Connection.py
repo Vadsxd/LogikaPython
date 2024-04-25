@@ -1,5 +1,6 @@
 import gc
 import threading
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from enum import IntEnum, Flag, auto
@@ -91,7 +92,7 @@ class EventHandler:
             handler(*args, **kwargs)
 
 
-class Connection:
+class Connection(ABC):
     def __init__(self, address: str, read_timeout: int):
         self.OnConnectionStateChange = None
         self.mLastRXTime = None
@@ -109,11 +110,13 @@ class Connection:
         self.on_after_connect = EventHandler()
         self.on_connect_required = EventHandler()
 
+    @abstractmethod
     def dispose(self, disposing: bool):
         self.dispose(True)
         gc.disable()
 
-    def reset_bus_state_tracker(self):
+    @staticmethod
+    def reset_bus_state_tracker():
         print("resetting bus state")
 
     # def mon(self, event: MonitorEventType, data: List[bytes], info: str):
@@ -138,15 +141,19 @@ class Connection:
             except:
                 pass
 
+    @abstractmethod
     def internal_open(self, connect_details: str):
         pass
 
+    @abstractmethod
     def internal_close(self):
         pass
 
-    def internal_read(self, buf: List[bytes], start: int, max_length: int):
+    @abstractmethod
+    def internal_read(self, buf: List[bytes], start: int, max_length: int) -> int:
         pass
 
+    @abstractmethod
     def internal_write(self, buf: List[bytes], start: int, n_bytes: int):
         pass
 
@@ -209,8 +216,9 @@ class Connection:
 
             self.state = ConnectionState.NotConnected
 
+    @abstractmethod
     def InternalPurgeComms(self, what):
-        raise NotImplementedError
+        pass
 
     def PurgeComms(self, what):
         if self.state == ConnectionState.Connected:
@@ -285,6 +293,7 @@ class Connection:
     def onSetReadTimeout(self, newTimeout):
         pass
 
+    @abstractmethod
     def isConflictingWith(self, target):
         pass
 
