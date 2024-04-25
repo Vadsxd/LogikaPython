@@ -1,6 +1,6 @@
+from datetime import timedelta, datetime
 from enum import Enum, auto
 from typing import List, Dict
-from datetime import timedelta, datetime
 
 
 class MeasureKind(Enum):

@@ -1,17 +1,8 @@
 from datetime import timedelta
-from enum import Enum
 
 from Logika.Meters.Logika4 import Logika4
-from Logika.Meters.Types import MeasureKind
-from Logika4L import Logika4L
-
-
-class ImportantTag(Enum):
-    EngUnits = 1
-    NetAddr = 2
-    Ident = 3
-    RDay = 4
-    RHour = 5
+from Logika.Meters.Types import MeasureKind, ImportantTag
+from Logika4L import Logika4L, ADSFlashRun
 
 
 class TSPG741(Logika4L):
@@ -36,8 +27,8 @@ class TSPG741(Logika4L):
         return 0x4729
 
     @property
-    def MeasureKind(self) -> str:
-        return MeasureKind.G.name
+    def MeasureKind(self):
+        return MeasureKind.G
 
     @property
     def Caption(self):
@@ -55,7 +46,8 @@ class TSPG741(Logika4L):
     def MaxGroups(self):
         return 1
 
-    def GetCommonTagDefs(self):
+    @staticmethod
+    def GetCommonTagDefs():
         return {
             ImportantTag.EngUnits: ["ОБЩ.[P1]", "ОБЩ.[dP1]", "ОБЩ.[P2]", "ОБЩ.[dP2]", "ОБЩ.[dP3]", "ОБЩ.[Pб]",
                                     "ОБЩ.[P3]", "ОБЩ.[P4]"],
@@ -65,7 +57,8 @@ class TSPG741(Logika4L):
             ImportantTag.RHour: "ОБЩ.ЧР"
         }
 
-    def getNsDescriptions(self):
+    @staticmethod
+    def getNsDescriptions():
         return [
             "Разряд батареи",  # 00
             "",
@@ -151,14 +144,17 @@ class TSPG741(Logika4L):
 
         return eus
 
+    @staticmethod
     def getAdsFileLayout(self, everyone, model):
         if everyone:
-            return [{"Start": 0x00000, "Length": 0x17C80}]
+            return [ADSFlashRun(0x00000, 0x17C80)]
         else:
             return [
-                {"Start": 0x00000, "Length": 0x4840},
-                {"Start": 0x13440, "Length": 0x4840}
+                ADSFlashRun(0x00000, 0x4840),
+                ADSFlashRun(0x13440, 0x4840)
             ]
 
+    @staticmethod
     def getModelFromImage(self, flashImage):
         return ""
+

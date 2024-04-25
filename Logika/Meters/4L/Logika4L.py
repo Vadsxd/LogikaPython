@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from Logika.Meters.ArchiveDef import ArchiveDef4L
+from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef4L
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import TagDef4L
@@ -78,20 +79,20 @@ class Logika4L(ABC, Logika4):
             return Dt.strftime("%d/%m")
 
         elif binaryType == BinaryType.bitArray8:
-            return BitNumbers(buffer[offset], 8, 0)
+            return Logika4.BitNumbers(buffer[offset], 8, 0)
 
         elif binaryType == BinaryType.bitArray16:
             usv = int.from_bytes(buffer[offset:offset + 2], byteorder='little')
-            return BitNumbers(usv, 16, 8)
+            return Logika4.BitNumbers(usv, 16, 8)
 
         elif binaryType == BinaryType.bitArray24:
             bExt = bytearray([0, 0, 0]) + buffer[offset:offset + 3]
             ulv = int.from_bytes(bExt, byteorder='little')
-            return BitNumbers(ulv, 24, 0)
+            return Logika4.BitNumbers(ulv, 24, 0)
 
         elif binaryType == BinaryType.bitArray32:
             u32v = int.from_bytes(buffer[offset:offset + 4], byteorder='little')
-            return BitNumbers(u32v, 32, 0)
+            return Logika4.BitNumbers(u32v, 32, 0)
 
         elif binaryType == BinaryType.dbentry:
             PARAM_BIN_PART_LEN = 4
@@ -154,7 +155,7 @@ class Logika4L(ABC, Logika4):
             return f"НС{buffer[offset + 6]:02d}{'+' if (buffer[offset + 7] & 1) > 0 else '-'}"
 
         elif binaryType == BinaryType.IZMrecord:
-            return LcdCharsToString(buffer, offset + 8, 16).strip()
+            return Logika4L.LcdCharsToString(buffer, offset + 8, 16).strip()
 
         else:
             raise Exception(f"unsupported binary type in GetValue: '{binaryType}'")
