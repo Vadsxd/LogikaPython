@@ -12,7 +12,7 @@ class TSPG742(Logika4M):
         super.__init__(self)
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x472A
 
     @property

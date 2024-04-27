@@ -50,7 +50,7 @@ class Logika4M(ABC, Logika4):
         return True
 
     @property
-    def FamilyName(self):
+    def family_name(self):
         return "M4"
 
     @property

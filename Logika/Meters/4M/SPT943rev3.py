@@ -32,7 +32,7 @@ class TSPT943rev3(Logika4M):
         return 2
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x542B
 
     def IdentMatch(self, id0, id1, ver):

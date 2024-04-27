@@ -10,7 +10,7 @@ class TSPT940(Logika4M):
         super().__init__()
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x9228
 
     @property

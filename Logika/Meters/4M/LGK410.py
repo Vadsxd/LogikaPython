@@ -55,7 +55,7 @@ class TLGK410(Logika4M):
         return False
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x460A
 
     def BuildEUDict(self, euTags):

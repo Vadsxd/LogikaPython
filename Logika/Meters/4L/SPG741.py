@@ -23,7 +23,7 @@ class TSPG741(Logika4L):
         self.sensorVars = ["ВД", "ТД", "ВП", "НП", "ЦИ", "КС", "КВ", "КН", "УВ", "УН", "Vн"]
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x4729
 
     @property
@@ -58,7 +58,7 @@ class TSPG741(Logika4L):
         }
 
     @staticmethod
-    def getNsDescriptions():
+    def get_ns_descriptions():
         return [
             "Разряд батареи",  # 00
             "",

@@ -70,26 +70,26 @@ class Logika4(ABC, Meter):
     def get_display_format(self, fi: TagDef):
         if fi.DisplayFormat:
             return fi.DisplayFormat
-        if fi.StdVar == StdVar.G.name:
+        if fi.StdVar == StdVar.G:
             return self.dfFlow
-        elif fi.StdVar == StdVar.M.name:
+        elif fi.StdVar == StdVar.M:
             return self.dfMass
-        elif fi.StdVar == StdVar.P.name:
+        elif fi.StdVar == StdVar.P:
             return self.dfPressure
-        elif fi.StdVar == StdVar.T.name:
+        elif fi.StdVar == StdVar.T:
             return self.dfTemperature
-        elif fi.StdVar == StdVar.ti.name:
+        elif fi.StdVar == StdVar.ti:
             return self.dfTimeInt
-        elif fi.StdVar == StdVar.V.name:
+        elif fi.StdVar == StdVar.V:
             return self.dfVolume
-        elif fi.StdVar == StdVar.W.name:
+        elif fi.StdVar == StdVar.W:
             return self.dfEnergy
         else:
             return None
 
     @property
-    def BusType(self) -> str:
-        return BusProtocolType.RSbus.name
+    def bus_type(self) -> BusProtocolType:
+        return BusProtocolType.RSbus
 
     def GetEventPrefixForTV(self, TVnum: int) -> str:
         if self.MaxGroups == 1:
@@ -184,7 +184,7 @@ class Logika4(ABC, Meter):
         pass
 
     @abstractmethod
-    def IdentWord(self) -> int:
+    def ident_word(self) -> int:
         pass
 
     @abstractmethod

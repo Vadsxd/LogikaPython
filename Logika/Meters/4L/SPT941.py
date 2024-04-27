@@ -9,7 +9,7 @@ class TSPT941(Logika4L):
         super().__init__()
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x5429
 
     @property
@@ -51,7 +51,7 @@ class TSPT941(Logika4L):
         }
 
     @staticmethod
-    def getNsDescriptions(self):
+    def get_ns_descriptions(self):
         return [
             "Разряд батареи",
             "Выход температуры на ТС1 за диапазон",

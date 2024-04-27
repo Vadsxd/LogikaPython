@@ -10,7 +10,7 @@ class TSPG740(Logika4M):
         super.__init__(self)
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x4728
 
     @property

@@ -35,7 +35,7 @@ class TSPT943(Logika4L):
         return 2
 
     @property
-    def IdentWord(self):
+    def ident_word(self):
         return 0x542B
 
     def IdentMatch(self, id0, id1, ver):
@@ -53,7 +53,7 @@ class TSPT943(Logika4L):
         }
 
     @staticmethod
-    def getNsDescriptions(self) -> List[str]:
+    def get_ns_descriptions(self) -> List[str]:
         return [
             "Разряд батареи",
             "Перегрузка по цепям питания датчиков объема"

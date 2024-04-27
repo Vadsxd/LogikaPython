@@ -241,7 +241,7 @@ class Logika4L(ABC, Logika4):
             return None
 
     @property
-    def FamilyName(self):
+    def family_name(self):
         return "L4"
 
     @property

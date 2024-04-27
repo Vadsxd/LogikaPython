@@ -176,7 +176,7 @@ class Meter(ABC):
 
     @property
     @abstractmethod
-    def BusType(self) -> str:
+    def bus_type(self) -> str:
         pass
 
     @abstractmethod
@@ -274,7 +274,7 @@ class Meter(ABC):
         pass
 
     @abstractmethod
-    def FamilyName(self) -> str:
+    def family_name(self) -> str:
         pass
 
     @property
@@ -344,7 +344,7 @@ class Meter(ABC):
 
             # loading tags
             if self._tagVault is None:
-                tableName = self.FamilyName() + "Tags"
+                tableName = self.family_name() + "Tags"
                 dt = self.metadata.Tables.get(tableName)
                 if dt is None:
                     dt = self.loadResTable(tableName)
@@ -356,7 +356,7 @@ class Meter(ABC):
                 self._tagVault = TagVault(lt)
 
             # loading archives
-            arTableName = self.FamilyName() + "Archives"
+            arTableName = self.family_name() + "Archives"
             dta = self.metadata.Tables.get(arTableName)
             if dta is None:
                 dta = self.loadResTable(arTableName)
