@@ -1,0 +1,142 @@
+from datetime import timedelta
+
+from Logika.Meters.Types import MeasureKind, ImportantTag
+from Logika4M import Logika4M, AdsTagBlock
+
+
+class TSPT941_20(Logika4M):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def MeasureKind(self):
+        return MeasureKind.T
+
+    @property
+    def Caption(self) -> str:
+        return "СПТ941.20"
+
+    @property
+    def Description(self) -> str:
+        return "тепловычислитель СПТ941, мод. 20"
+
+    @property
+    def MaxChannels(self) -> int:
+        return 3
+
+    @property
+    def MaxGroups(self) -> int:
+        return 1
+
+    @property
+    def IdentWord(self):
+        return 0x9229
+
+    def IdentMatch(self, id0, id1, ver):
+        return super().IdentMatch(id0, id1, ver) and ver >= 0x80
+
+    @staticmethod
+    def getNsDescriptions(self):
+        return [
+            "Разряд батареи",  # 00
+            "Отсутствие напряжения на разъеме X1 тепловычислителя",
+            "Изменение сигнала на дискретном входе X4",
+            "Изменение сигнала на дискретном входе X11",
+            "Параметр tх вне диапазона 0..176 'C",  # 04
+            "Параметр t4 вне диапазона -50..176 'C",
+            "Параметр Pх вне диапазона 0..1,03*ВП3",
+            "Параметр P4 вне диапазона 0..1,03*ВП3",
+
+            "Значение контролируемого параметра, определяемого КУ1 вне диапазона УН1..УВ1",  # 08
+            "Значение контролируемого параметра, определяемого КУ2 вне диапазона УН2..УВ2",
+            "Значение контролируемого параметра, определяемого КУ3 вне диапазона УН3..УВ3",
+            "Значение контролируемого параметра, определяемого КУ4 вне диапазона УН4..УВ4",
+            "Значение контролируемого параметра, определяемого КУ5 вне диапазона УН5..УВ5",  # 12
+            "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+            "Параметр P1 вне диапазона 0..1,03*ВП1",  # 32
+            "Параметр P2 вне диапазона 0..1,03*ВП2",
+            "Параметр P3 вне диапазона 0..1,03*ВП3",
+            "Параметр t1 вне диапазона 0..176 'C",
+            "Параметр t2 вне диапазона 0..176 'C",
+            "Параметр t3 вне диапазона 0..176 'C",
+
+            "Расход через ВС1 выше верхнего предела диапазона измерений (G1>Gв1)",  # 38
+            "Ненулевой расход через ВС1 ниже нижнего предела диапазона измерений (0<G1<Gн1)",
+            "Ненулевой расход через ВС1 ниже значения отсечки самохода (0<G1<Gотс1)",
+            "Расход через ВС2 выше верхнего предела диапазона измерений (G2>Gв2)",
+            "Ненулевой расход через ВС2 ниже нижнего предела диапазона (0<G2<Gн2)",
+            "Ненулевой расход через ВС2 ниже значения отсечки самохода (0<G2<Gотс2)",
+            "Расход через ВС3 выше верхнего предела диапазона измерений (G3>Gв3)",
+            "Ненулевой расход через ВС3 ниже нижнего предела диапазона (0<G3<Gн3)",
+            "Ненулевой расход через ВС3 ниже значения отсечки самохода (0<G3<Gотс3)",
+            "Диагностика отрицательного значения разности часовых масс теплоносителя (М1ч–М2ч), выходящего за "
+            "допустимые пределы",
+            "Значение разности часовых масс (М1ч–М2ч) находится в пределах (-НМ)*М1ч <(М1ч–М2ч)<0",
+            "Значение разности часовых масс (М1ч–М2ч) находится в пределах 0<(М1ч–М2ч)< НМ*М1ч",
+            "Отрицательное значение часового количества тепловой энергии (Qч<0)",
+            "Некорректное задание температурного графика",  # 51
+            "",
+            "Текущее значение температуры по обратному трубопроводу выше чем значение температуры, вычисленное по "
+            "заданному температурному графику"  # 53
+        ]
+
+    @staticmethod
+    def GetCommonTagDefs(self):
+        return {
+            ImportantTag.SerialNo: "ОБЩ.serial",
+            ImportantTag.NetAddr: "ОБЩ.NT",
+            ImportantTag.Ident: "ОБЩ.ИД",
+            ImportantTag.RDay: "ОБЩ.СР",
+            ImportantTag.RHour: "ОБЩ.ЧР",
+            ImportantTag.EngUnits: ["ОБЩ.ЕИ/P", "ОБЩ.ЕИ/Q"],
+            ImportantTag.ParamsCSum: "ОБЩ.КСБД"
+        }
+
+    @staticmethod
+    def BuildEUDict(euTags):
+        eus = {}
+        if len(euTags) != 2 or euTags[0].Value is None or euTags[1].Value is None:
+            raise Exception("incorrect EU tags supplied")
+
+        pua = ["кгс/см²", "МПа", "бар"]
+        qua = ["Гкал", "ГДж", "МВт·ч"]
+
+        pi = int(euTags[0].Value)
+        if pi > len(pua) - 1:
+            pi = 0
+        eus["[P]"] = pua[pi]
+
+        qi = int(euTags[1].Value)
+        if qi > len(qua) - 1:
+            qi = 0
+        eus["[Q]"] = qua[qi]
+
+        return eus
+
+    @property
+    def SupportsBaudRateChangeRequests(self) -> bool:
+        return True
+
+    @property
+    def MaxBaudRate(self) -> int:
+        return 57600
+
+    @property
+    def SessionTimeout(self):
+        return timedelta(minutes=1)
+
+    @property
+    def SupportsArchivePartitions(self) -> bool:
+        return True
+
+    @property
+    def SupportsFLZ(self) -> bool:
+        return False
+
+    @staticmethod
+    def getADSTagBlocks(self):
+        return [
+            AdsTagBlock(0, 0, 0, 200),  # БД (167 окр. до 200)
+            AdsTagBlock(3, ["8224", "1024", "1025"]),  # info T D
+            AdsTagBlock(3, 0, 2048, 32)  # тотальные (27 окр. до 32)
+        ]

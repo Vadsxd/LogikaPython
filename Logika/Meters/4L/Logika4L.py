@@ -46,8 +46,6 @@ class ADSFlashRun:
 class Logika4L(ABC, Logika4):
     def __init__(self):
         super().__init__()
-        self.SupportedByProlog4 = True
-        self.Outdated = True
 
     FLASH_PAGE_SIZE = 0x40
     PARAMS_FLASH_ADDR = 0x0200
@@ -56,6 +54,14 @@ class Logika4L(ABC, Logika4):
                     'г', 'ё', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'п', 'т', 'ч', 'ш', 'ъ', 'ы', 'ь', 'э', 'ю', 'я',
                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                     ' ', ' ', ' ', ' ', 'Д', 'Ц', 'Щ', 'д', 'ф', 'ц', 'щ']
+
+    @property
+    def SupportedByProlog4(self) -> bool:
+        return True
+
+    @property
+    def Outdated(self) -> bool:
+        return True
 
     @staticmethod
     def GetValue(binaryType, buffer, offset, operFlag):
