@@ -29,23 +29,12 @@ class ManualResetEvent:
 
 
 class ConnectionType(IntEnum):
-    Offline = -1
-    Serial = 0
-    Modem = 1
-    TCP = 2
-    UDP = 3
-    Radius = 4
-
-    def __str__(self):
-        descriptions = {
-            ConnectionType.Offline: "Отключено",
-            ConnectionType.Serial: "COM порт",
-            ConnectionType.Modem: "Модем",
-            ConnectionType.TCP: "TCP",
-            ConnectionType.UDP: "UDP",
-            ConnectionType.Radius: "Радиус",
-        }
-        return descriptions[self]
+    Offline = (-1, "Отключено")
+    Serial = (0, "COM порт")
+    Modem = (1, "Модем")
+    TCP = (2, "TCP")
+    UDP = (3, "UDP")
+    Radius = (4, "Радиус")
 
 
 class PurgeFlags(Flag):
@@ -94,18 +83,17 @@ class EventHandler:
 
 class Connection(ABC):
     def __init__(self, address: str, read_timeout: int):
-        self.OnConnectionStateChange = None
-        self.mLastRXTime = None
-        self.mReadTimeout = None
-        self.mState = None
-        self.txByteCnt = None
-        self.rxByteCnt = None
+        self.on_connection_state_change = None
+        self.m_last_rx_time = datetime.min
+        self.m_read_timeout = None
+        self.m_state = None
+        self.tx_byte_cnt = None
+        self.rx_byte_cnt = None
         self.on_log_event = None
         self.address = address
         self.closing_event = ManualResetEvent()
         self.read_timeout = read_timeout
         self.state = ConnectionState.NotConnected
-        self.last_rx_time = datetime.min
         self.on_before_disconnect = EventHandler()
         self.on_after_connect = EventHandler()
         self.on_connect_required = EventHandler()
@@ -161,7 +149,7 @@ class Connection(ABC):
     def resource_name(self):
         return None
 
-    def Open(self):
+    def open(self):
         with threading.Lock:
             self.closing_event.reset()
             self.state = ConnectionState.Connecting
@@ -192,7 +180,7 @@ class Connection(ABC):
                 # self.mon(MonitorEventType.Error, None, e.message)
                 raise
 
-    def Close(self):
+    def close(self):
         self.closing_event.reset()
 
         with threading.Lock:
@@ -217,12 +205,12 @@ class Connection(ABC):
             self.state = ConnectionState.NotConnected
 
     @abstractmethod
-    def InternalPurgeComms(self, what):
+    def internal_purge_comms(self, what):
         pass
 
-    def PurgeComms(self, what):
+    def purge_comms(self, what):
         if self.state == ConnectionState.Connected:
-            self.InternalPurgeComms(what)
+            self.internal_purge_comms(what)
             sp = "# purge "
             if what & PurgeFlags.RX:
                 sp += "RX "
@@ -231,35 +219,35 @@ class Connection(ABC):
 
             # self.Mon(MonitorEventType.Purge, None, sp)
 
-    def ReadAvailable(self, buf, start, maxLength):
+    def read_available(self, buf, start, maxLength):
         self.check_if_connected()
         try:
             nRead = self.internal_read(buf, start, maxLength)
             if nRead > 0:
-                self.rxByteCnt += nRead
+                self.rx_byte_cnt += nRead
                 rr = buf[start:start + nRead]
                 # self.Mon(MonitorEventType.Rx, rr, None)
         except Exception as e:
             # self.Mon(MonitorEventType.Error, None, f"! {type(e).__name__} : {e}")
             raise
 
-        self.last_rx_time = datetime.now()
+        self.m_last_rx_time = datetime.now()
 
         return nRead
 
-    def Read(self, buf, start, length):
+    def read(self, buf, start, length):
         nRead = 0
 
         while nRead < length:
             self.check_if_closing()
-            nRead += self.ReadAvailable(buf, start + nRead, length - nRead)
+            nRead += self.read_available(buf, start + nRead, length - nRead)
 
-    def Write(self, buf, start, nBytes):
+    def write(self, buf, start, nBytes):
         self.check_if_connected()
         self.check_if_closing()
         try:
             self.internal_write(buf, start, nBytes)
-            self.txByteCnt += nBytes
+            self.tx_byte_cnt += nBytes
             if nBytes > 0:
                 wr = buf[start:start + nBytes]
                 # self.Mon(MonitorEventType.Tx, wr, None)
@@ -267,48 +255,48 @@ class Connection(ABC):
             # self.Mon(MonitorEventType.Error, None, f"! {type(e).__name__} : {e}")
             raise
 
-    def StateChangeDelegate(self, new_state):
-        if self.OnConnectionStateChange is not None:
-            self.OnConnectionStateChange(new_state)
+    def state_change_delegate(self, new_state):
+        if self.on_connection_state_change is not None:
+            self.on_connection_state_change(new_state)
 
     @property
-    def State(self):
-        return self.mState
+    def state(self):
+        return self.m_state
 
-    @State.setter
-    def State(self, value):
-        self.mState = value
-        self.StateChangeDelegate(value)
+    @state.setter
+    def state(self, value):
+        self.m_state = value
+        self.state_change_delegate(value)
 
     @property
-    def ReadTimeout(self):
-        return self.mReadTimeout
+    def read_timeout(self):
+        return self.m_read_timeout
 
-    @ReadTimeout.setter
-    def ReadTimeout(self, value):
-        self.mReadTimeout = value
-        self.onSetReadTimeout(value)
+    @read_timeout.setter
+    def read_timeout(self, value):
+        self.m_read_timeout = value
+        self.on_set_read_timeout(value)
         # self.Mon(MonitorEventType.ChannelPropertiesChanged, None, f"@ ReadTimeout = {value} ms")
 
-    def onSetReadTimeout(self, newTimeout):
+    def on_set_read_timeout(self, new_timeout: int):
         pass
 
     @abstractmethod
-    def isConflictingWith(self, target):
+    def is_conflicting_with(self, target):
         pass
 
-    def ConflictsWith(self, target):
-        if self.State == ConnectionState.NotConnected or not isinstance(target, type(self)):
+    def conflicts_with(self, target):
+        if self.state == ConnectionState.NotConnected or not isinstance(target, type(self)):
             return False
-        return self.isConflictingWith(target)
+        return self.is_conflicting_with(target)
 
     @property
-    def LastRXTime(self):
-        return self.mLastRXTime
+    def last_rx_time(self):
+        return self.m_last_rx_time
 
-    def ResetStatistics(self):
-        self.txByteCnt = 0
-        self.rxByteCnt = 0
+    def reset_statistics(self):
+        self.tx_byte_cnt = 0
+        self.rx_byte_cnt = 0
 
 
 class MonitorEvent:

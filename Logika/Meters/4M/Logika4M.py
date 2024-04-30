@@ -43,58 +43,58 @@ class Logika4M(ABC, Logika4):
 
     def __init__(self):
         super().__init__()
-        self.tLen = 0
+        self.t_len = 0
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self) -> bool:
         return True
 
     @property
-    def family_name(self):
+    def family_name(self) -> str:
         return "M4"
 
     @property
-    def tagsSort(self):
+    def tags_sort(self) -> str:
         return "Device, Channel, Ordinal"
 
     @property
-    def archiveFieldsSort(self):
+    def archive_fields_sort(self) -> str:
         return "Device, ArchiveType, Index"
 
     @abstractmethod
-    def getADSTagBlocks(self) -> List[AdsTagBlock]:
+    def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
         pass
 
     @abstractmethod
-    def SupportsFLZ(self) -> bool:
+    def supports_flz(self) -> bool:
         pass
 
     @abstractmethod
-    def SupportsArchivePartitions(self) -> bool:
+    def supports_archive_partitions(self) -> bool:
         pass
 
     @property
-    def SupportedByProlog4(self) -> bool:
+    def supported_by_prolog4(self) -> bool:
         return True
 
-    def GetTagLength(self, buf, idx):
+    def get_tag_length(self, buf, idx):
         tl = buf[idx]
         if (tl & 0x80) > 0:
             tl &= 0x7F
             if tl == 1:
-                self.tLen = buf[idx + 1]
+                self.t_len = buf[idx + 1]
             elif tl == 2:
-                self.tLen = (buf[idx + 1] << 8) | buf[idx + 2]
+                self.t_len = (buf[idx + 1] << 8) | buf[idx + 2]
             else:
                 raise Exception("length field >1 byte")
             return tl + 1
         else:
-            self.tLen = tl
+            self.t_len = tl
             return 1
 
-    def ParseTag(self, buf, idx):
+    def parse_tag(self, buf, idx):
         tID = buf[idx]
-        lenLen = self.GetTagLength(buf, idx + 1)
+        lenLen = self.get_tag_length(buf, idx + 1)
         iSt = idx + 1 + lenLen
 
         if tID == 0x05:
@@ -102,37 +102,37 @@ class Logika4M(ABC, Logika4):
         elif tID == 0x43:
             v = struct.unpack('<f', buf[iSt:iSt + 4])[0]
         elif tID == 0x41:
-            if self.tLen == 1:
+            if self.t_len == 1:
                 v = struct.unpack('<I', buf[iSt:iSt + 1])[0]
-            elif self.tLen == 2:
+            elif self.t_len == 2:
                 v = struct.unpack('<I', buf[iSt:iSt + 2])[0]
-            elif self.tLen == 4:
+            elif self.t_len == 4:
                 v = struct.unpack('<I', buf[iSt:iSt + 4])[0]
             else:
                 raise Exception("Unsupported tag length for 'uint' type")
         elif tID == 0x04:
-            v = array.array('B', buf[iSt:iSt + self.tLen])
+            v = array.array('B', buf[iSt:iSt + self.t_len])
         elif tID == 0x16:
-            v = buf[iSt:iSt + self.tLen].decode('cp1251')
+            v = buf[iSt:iSt + self.t_len].decode('cp1251')
         elif tID == 0x44:
             int_val = struct.unpack('<i', buf[iSt:iSt + 4])[0]
             float_val = struct.unpack('<f', buf[iSt + 4:iSt + 8])[0]
             v = float(int_val) + float_val
         elif tID == 0x45:
-            if self.tLen > 0:
+            if self.t_len > 0:
                 v = OperParamFlag.Yes if buf[iSt] > 0 else OperParamFlag.No
             else:
                 v = OperParamFlag.No
         elif tID == 0x46:
-            v = buf[iSt] if self.tLen == 1 else None
+            v = buf[iSt] if self.t_len == 1 else None
         elif tID == 0x47:
             v = "{:02}:{:02}:{:02}".format(buf[iSt + 3], buf[iSt + 2], buf[iSt + 1])
         elif tID == 0x48:
             v = "{:02}-{:02}-{:02}".format(buf[iSt], buf[iSt + 1], buf[iSt + 2])
         elif tID == 0x49:
             tv = [0, 1, 1, 0, 0, 0, 0, 0]
-            if self.tLen > 0:
-                for t in range(min(self.tLen, len(tv))):
+            if self.t_len > 0:
+                for t in range(min(self.t_len, len(tv))):
                     tv[t] = buf[iSt + t]
                 ms = (tv[7] << 8) | tv[6]
                 if ms > 999:
@@ -143,8 +143,8 @@ class Logika4M(ABC, Logika4):
         elif tID == 0x4A:
             v = (buf[iSt], struct.unpack('<H', buf[iSt + 1:iSt + 3])[0])
         elif tID == 0x4B:
-            if self.tLen <= 16:
-                v = Logika4.BitNumbers(buf, iSt, self.tLen * 8)
+            if self.t_len <= 16:
+                v = Logika4.bit_numbers(buf, iSt, self.t_len * 8)
             else:
                 raise Exception("FLAGS tag length unsupported")
         elif tID == 0x55:  # ERR
@@ -152,9 +152,9 @@ class Logika4M(ABC, Logika4):
         else:
             raise Exception("unknown tag type 0x{:X2}".format(tID))
 
-        return 1 + lenLen + self.tLen, v  # tag code + length field + payload
+        return 1 + lenLen + self.t_len, v  # tag code + length field + payload
 
-    def readTagDef(self, r):
+    def read_tag_def(self, r):
         chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, range = self.readCommonDef(
             r)
 
@@ -167,12 +167,12 @@ class Logika4M(ABC, Logika4):
         return TagDef4M(ch, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, sDbType, units,
                         displayFormat, descriptionEx, range)
 
-    def readArchiveDefs(self, rows):
+    def read_archive_defs(self, rows):
         d = []
         for r in rows:
             chKey = str(r["Channel"])
             ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-            art = ArchiveType.FromString(str(r["ArchiveType"]))
+            art = ArchiveType.from_string(str(r["ArchiveType"]))
             recType = type("System." + str(r["RecordType"]))
             name = str(r["Name"])
             desc = str(r["Description"])
@@ -182,8 +182,8 @@ class Logika4M(ABC, Logika4):
 
         return d
 
-    def readArchiveFieldDef(self, r):
-        art = ArchiveType.FromString(str(r["ArchiveType"]))
+    def read_archive_field_def(self, r):
+        art = ArchiveType.from_string(str(r["ArchiveType"]))
         ra = next((x for x in self.Archives if x.ArchiveType == art), None)
 
         idx = int(r["Index"])
@@ -200,5 +200,3 @@ class Logika4M(ABC, Logika4):
         displayFormat = str(r["DisplayFormat"])
 
         return ArchiveFieldDef4M(ra, idx, name, desc, stv, t, sDbType, displayFormat, units)
-
-

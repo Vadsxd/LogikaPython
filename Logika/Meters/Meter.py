@@ -79,26 +79,26 @@ class MeterType(Enum):
 
 class TagVault:
     def __init__(self, tags):
-        self.refTags = tags
-        self.tagKeyDict = {}
+        self.ref_tags = tags
+        self.tag_key_dict = {}
         for t in tags:
-            self.tagKeyDict[(t.ChannelDef.Prefix, Conversions.rus_string_to_stable_alphabet(t.Key))] = t
+            self.tag_key_dict[(t.ChannelDef.Prefix, Conversions.rus_string_to_stable_alphabet(t.key))] = t
 
-    def Find(self, channelKind, key):
-        return self.tagKeyDict.get((channelKind, Conversions.rus_string_to_stable_alphabet(key)))
+    def find(self, channel_kind, key):
+        return self.tag_key_dict.get((channel_kind, Conversions.rus_string_to_stable_alphabet(key)))
 
     @property
-    def All(self):
-        return self.refTags
+    def all(self):
+        return self.ref_tags
 
 
 class Meter(ABC):
-    meterDict = {}
-    dfTemperature = "0.00"
+    meter_dict = {}
+    df_temperature = "0.00"
 
     _archives = None
     _channels = None
-    refArchiveFields = None
+    ref_archive_fields = None
     _tagVault = None
     _rr = []
 
@@ -108,27 +108,27 @@ class Meter(ABC):
 
     @property
     @abstractmethod
-    def MeasureKind(self):
+    def measure_kind(self):
         pass
 
     @property
     @abstractmethod
-    def Caption(self):
+    def caption(self):
         pass
 
     @property
     @abstractmethod
-    def Description(self):
+    def description(self):
         pass
 
     @property
     @abstractmethod
-    def MaxChannels(self):
+    def max_channels(self):
         pass
 
     @property
     @abstractmethod
-    def MaxGroups(self):
+    def max_groups(self):
         pass
 
     def __eq__(self, other):
@@ -140,7 +140,7 @@ class Meter(ABC):
         return super().__hash__()
 
     @staticmethod
-    def getDefinedMeterTypes(cls):
+    def get_defined_meter_types(cls):
         if not issubclass(cls, Meter):
             raise Exception("wrong type")
         lm = [getattr(cls, attr) for attr in dir(cls) if isinstance(getattr(cls, attr), Meter)]
@@ -149,29 +149,29 @@ class Meter(ABC):
 
     @property
     @abstractmethod
-    def SupportedByProlog4(self):
+    def supported_by_prolog4(self):
         pass
 
     @property
-    def Outdated(self):
+    def outdated(self) -> bool:
         return False
 
     @staticmethod
-    def FromTypeString(meterTypeString):
-        if meterTypeString is None:
+    def from_type_string(meter_type_string: str):
+        if meter_type_string is None:
             return None
-        return Meter.meterDict[meterTypeString]
+        return Meter.meter_dict[meter_type_string]
 
     @staticmethod
-    def SupportedMeters():
-        return list(Meter.meterDict.values())
+    def supported_meters():
+        return list(Meter.meter_dict.values())
 
     @property
-    def VendorID(self) -> str:
+    def vendor_id(self) -> str:
         return "ЛОГИКА"
 
     @property
-    def Vendor(self) -> str:
+    def vendor(self) -> str:
         return "ЗАО НПФ ЛОГИКА"
 
     @property
@@ -180,33 +180,33 @@ class Meter(ABC):
         pass
 
     @abstractmethod
-    def GetCommonTagDefs(self) -> Dict[ImportantTag, object]:
+    def get_common_tag_defs(self) -> Dict[ImportantTag, object]:
         pass
 
     def __str__(self):
-        return self.Caption
+        return self.caption
 
     @staticmethod
     def initialize_meter_dict():
         with threading.Lock():
-            mtrs = Meter.getDefinedMeterTypes(type(Meter))
+            mtrs = Meter.get_defined_meter_types(type(Meter))
 
             for m in mtrs:
-                Meter.meterDict[m.__class__.__name__] = m
+                Meter.meter_dict[m.__class__.__name__] = m
 
     @abstractmethod
-    def GetEventPrefixForTV(self, TVnum: int):
+    def get_event_prefix_for_tv(self, TVnum: int):
         pass
 
-    def GetWellKnownTags(self) -> Dict[ImportantTag, DataTag]:
-        tdefs = self.GetCommonTagDefs()
+    def get_well_known_tags(self) -> Dict[ImportantTag, List[DataTag]]:
+        tdefs = self.get_common_tag_defs()
         wtd = {}
         for key, value in tdefs.items():
-            dta = self.lookupCommonTags(value)
+            dta = self.lookup_common_tags(value)
             wtd[key] = dta
         return wtd
 
-    def lookupCommonTags(self, tlist: object) -> List[DataTag]:
+    def lookup_common_tags(self, tlist: object) -> List[DataTag]:
         if isinstance(tlist, str):
             tagAddrs = [tlist]
         elif isinstance(tlist, list):
@@ -220,7 +220,7 @@ class Meter(ABC):
             if len(ap) == 1:
                 tagName = ap[0]
                 chNo = 0
-                chType = next(x.Prefix for x in self.Channels if x.Start == 0 and x.Count == 1)
+                chType = next(x.Prefix for x in self.channels if x.Start == 0 and x.Count == 1)
             elif len(ap) == 2:
                 chType = ''.join(filter(str.isalpha, ap[0]))
                 chNo = 0 if len(chType) == len(ap[0]) else int(ap[0][len(chType):])
@@ -228,7 +228,7 @@ class Meter(ABC):
             else:
                 raise Exception("incorrect common tag address")
 
-            dd = self.FindTag(chType, tagName)
+            dd = self.find_tag(chType, tagName)
             if dd is None:
                 raise Exception(f"common tag {tagAddr} not found")
             dta.append(DataTag(dd, chNo))
@@ -236,41 +236,41 @@ class Meter(ABC):
         return dta
 
     @abstractmethod
-    def advanceReadPtr(self, archiveType, time):
+    def advance_read_ptr(self, archiveType, time):
         pass
 
     @abstractmethod
-    def GetDisplayFormat(self, fi):
+    def get_display_format(self, fi):
         pass
 
     @property
-    def Archives(self):
+    def archives(self):
         with self.tagsLock:
             if self._archives is None:
-                self.loadMetadata()
+                self.load_metadata()
             return self._archives
 
-    def HasArchive(self, at):
-        return any(x.ArchiveType == at for x in self.Archives)
+    def has_archive(self, at):
+        return any(x.ArchiveType == at for x in self.archives)
 
     @property
-    def ArchiveFields(self):
+    def archive_fields(self):
         with self.tagsLock:
-            if self.refArchiveFields is None:
-                self.loadMetadata()
-            return self.refArchiveFields
+            if self.ref_archive_fields is None:
+                self.load_metadata()
+            return self.ref_archive_fields
 
-    def FindArchiveFieldDef(self, archiveType, ordinal):
+    def find_archive_field_def(self, archiveType, ordinal):
         raise Exception("no ordinal anymore")
 
     @property
-    def Channels(self):
+    def channels(self):
         if self._channels is None:
-            self.loadMetadata()
+            self.load_metadata()
         return self._channels
 
     @abstractmethod
-    def readArchiveFieldDef(self, r):
+    def read_archive_field_def(self, r):
         pass
 
     @abstractmethod
@@ -278,14 +278,14 @@ class Meter(ABC):
         pass
 
     @property
-    def resReader(self):
+    def res_reader(self):
         if self._rr is None:
             mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("Logika.Tags.resources")
             self._rr = ResourceReader(mrs)
         return self._rr
 
     @staticmethod
-    def readCommonDef(r):
+    def read_common_def(r):
         chKey = str(r["Channel"])
         name = str(r["Name"])
         ordinal = int(r["Ordinal"])
@@ -307,31 +307,31 @@ class Meter(ABC):
         range = str(r["Range"])
 
     @abstractmethod
-    def readTagDef(self, r):
+    def read_tag_def(self, r):
         pass
 
     @abstractmethod
-    def tagsSort(self):
+    def tags_sort(self):
         pass
 
     @abstractmethod
-    def archiveFieldsSort(self):
+    def archive_fields_sort(self):
         pass
 
-    def perfDebugReset(self):
+    def perf_debug_reset(self):
         self._tagVault = None
         self.channelsTable = None
         self._channels = None
         self._archives = None
         self.metadata.Tables.Clear()
 
-    def loadMetadata(self):
+    def load_metadata(self):
         devName = self.__class__.__name[1:]  # TSPTxxx -> SPTxxx
 
         with Meter.tagsLock:
             # loading channels
             if self.channelsTable is None:
-                self.channelsTable = self.loadResTable("Channels")
+                self.channelsTable = self.load_res_table("Channels")
 
             if self._channels is None:
                 cr = self.channelsTable.Select("Device='" + devName + "'")
@@ -347,11 +347,11 @@ class Meter(ABC):
                 tableName = self.family_name() + "Tags"
                 dt = self.metadata.Tables.get(tableName)
                 if dt is None:
-                    dt = self.loadResTable(tableName)
+                    dt = self.load_res_table(tableName)
 
                 lt = []
-                for r in dt.Select("Device='" + devName + "'", self.tagsSort):
-                    rt = self.readTagDef(r)
+                for r in dt.Select("Device='" + devName + "'", self.tags_sort):
+                    rt = self.read_tag_def(r)
                     lt.append(rt)
                 self._tagVault = TagVault(lt)
 
@@ -359,34 +359,34 @@ class Meter(ABC):
             arTableName = self.family_name() + "Archives"
             dta = self.metadata.Tables.get(arTableName)
             if dta is None:
-                dta = self.loadResTable(arTableName)
+                dta = self.load_res_table(arTableName)
 
             if self._archives is None:
                 aclassName = self.__class__.__name
                 rows = dta.Select("Device='" + devName + "'", "Device, ArchiveType")
-                self._archives = self.readArchiveDefs(rows)
+                self._archives = self.read_archive_defs(rows)
 
             # loading archive fields
             afTableName = self.FamilyName() + "ArchiveFields"
             dtf = self.metadata.Tables.get(afTableName)
             if dtf is None:
-                dtf = self.loadResTable(afTableName)
+                dtf = self.load_res_table(afTableName)
 
-            if self.refArchiveFields is None:
+            if self.ref_archive_fields is None:
                 aclassName = self.__class__.__name
-                rows = dtf.Select("Device='" + devName + "'", self.archiveFieldsSort)
+                rows = dtf.Select("Device='" + devName + "'", self.archive_fields_sort)
                 lf = []
                 for r in rows:
-                    rf = self.readArchiveFieldDef(r)
+                    rf = self.read_archive_field_def(r)
                     lf.append(rf)
-                self.refArchiveFields = lf
+                self.ref_archive_fields = lf
 
     @abstractmethod
-    def readArchiveDefs(self, rows: List[DataRow]) -> List[ArchiveDef]:
+    def read_archive_defs(self, rows: List[DataRow]) -> List[ArchiveDef]:
         pass
 
     @staticmethod
-    def loadResTable(tableName: str) -> DataTable:
+    def load_res_table(tableName: str) -> DataTable:
         RES_OFFSET = 4
 
         dt = None
@@ -401,35 +401,35 @@ class Meter(ABC):
         return dt
 
     @property
-    def Tags(self) -> TagVault:
+    def tags(self) -> TagVault:
         with Meter.tagsLock:
             if self._tagVault is None:
-                self.loadMetadata()
+                self.load_metadata()
 
         return self._tagVault
 
     @property
-    def SupportsParamsDbChecksum(self) -> bool:
-        return ImportantTag.ParamsCSum in self.GetCommonTagDefs()
+    def supports_params_db_checksum(self) -> bool:
+        return ImportantTag.ParamsCSum in self.get_common_tag_defs()
 
-    def FindTag(self, chKind: str, key: str) -> DataTagDef:
-        return self.Tags.Find(chKind, key)
+    def find_tag(self, chKind: str, key: str) -> DataTagDef:
+        return self.tags.find(chKind, key)
 
     @abstractmethod
-    def GetNTFromTag(self, tagValue: str) -> Optional[bytes]:
+    def get_nt_from_tag(self, tagValue: str) -> Optional[bytes]:
         pass
 
     @abstractmethod
-    def getChannelKind(self, channelStart: int, channelCount: int, channelName: str) -> ChannelKind:
+    def get_channel_kind(self, channelStart: int, channelCount: int, channelName: str) -> ChannelKind:
         pass
 
-    def getBasicParams(self) -> List[DataTag]:
+    def get_basic_params(self) -> List[DataTag]:
         dts = []
-        paramTagDefs = [x for x in self.Tags.All if x.Kind in [TagKind.Parameter, TagKind.Info] and x.isBasicParam]
+        param_tag_defs = [x for x in self.tags.all if x.Kind in [TagKind.Parameter, TagKind.Info] and x.isBasicParam]
 
-        for chDef in self.Channels:
+        for chDef in self.channels:
             for chNo in range(chDef.Start, chDef.Start + chDef.Count):
-                for td in paramTagDefs:
+                for td in param_tag_defs:
                     if td.ChannelDef == chDef:
                         dts.append(DataTag(td, chNo))
 

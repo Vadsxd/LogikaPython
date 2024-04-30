@@ -12,34 +12,34 @@ class TSPT943rev3(Logika4M):
         super().__init__()
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self) -> MeasureKind:
         return MeasureKind.T
 
     @property
-    def Caption(self) -> str:
+    def caption(self) -> str:
         return "СПТ943rev3"
 
     @property
-    def Description(self) -> str:
+    def description(self) -> str:
         return "тепловычислитель СПТ943 vXX03XX"
 
     @property
-    def MaxChannels(self) -> int:
+    def max_channels(self) -> int:
         return 6
 
     @property
-    def MaxGroups(self) -> int:
+    def max_groups(self) -> int:
         return 2
 
     @property
     def ident_word(self):
         return 0x542B
 
-    def IdentMatch(self, id0, id1, ver):
-        return super().IdentMatch(id0, id1, ver) and (0x0A <= ver <= 0x1F)
+    def ident_match(self, id0, id1, ver):
+        return super().ident_match(id0, id1, ver) and (0x0A <= ver <= 0x1F)
 
     @staticmethod
-    def getNsDescriptions(self):
+    def get_ns_descriptions(self):
         return [
             "Разряд батареи",  # 00
             "Перегрузка по цепям питания преобразователей расхода",
@@ -68,7 +68,7 @@ class TSPT943rev3(Logika4M):
         ]
 
     @staticmethod
-    def GetCommonTagDefs(self):
+    def get_common_tag_defs(self) -> Dict[ImportantTag, str]:
         return {
             ImportantTag.SerialNo: "ОБЩ.serial",
             ImportantTag.Ident: "ОБЩ.ИД",
@@ -80,31 +80,31 @@ class TSPT943rev3(Logika4M):
         }
 
     @staticmethod
-    def BuildEUDict(eu_tags: List[DataTag]) -> Dict[str, str]:
-        return TSPT941_20.BuildEUDict([eu_tags[0], eu_tags[0]])  # Simulating separate EI/P + EI/Q
+    def build_eu_dict(eu_tags: List[DataTag]) -> Dict[str, str]:
+        return TSPT941_20.build_eu_dict([eu_tags[0], eu_tags[0]])  # Simulating separate EI/P + EI/Q
 
     @property
-    def SupportsBaudRateChangeRequests(self) -> bool:
+    def supports_baud_rate_change_requests(self) -> bool:
         return True
 
     @property
-    def MaxBaudRate(self) -> int:
+    def max_baud_rate(self) -> int:
         return 19200
 
     @property
-    def SessionTimeout(self) -> timedelta:
+    def session_timeout(self) -> timedelta:
         return timedelta(minutes=1)  # 1 minute
 
     @property
-    def SupportsArchivePartitions(self) -> bool:
+    def supports_archive_partitions(self) -> bool:
         return False
 
     @property
-    def SupportsFLZ(self) -> bool:
+    def supports_flz(self) -> bool:
         return False
 
     @staticmethod
-    def getADSTagBlocks(self) -> List[AdsTagBlock]:
+    def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
         return [
             AdsTagBlock(0, 0, 0, 64),  # DB ch0
             AdsTagBlock(100, 1, 0, 64),  # DB ch1

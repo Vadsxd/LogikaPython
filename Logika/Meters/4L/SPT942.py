@@ -16,15 +16,15 @@ class TSPT942(Logika4L):
         super().__init__()
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.T
 
     @property
-    def Caption(self):
+    def caption(self):
         return "СПТ942"
 
     @property
-    def Description(self):
+    def description(self):
         return "тепловычислитель СПТ942"
 
     @property
@@ -32,15 +32,15 @@ class TSPT942(Logika4L):
         return 0x542A
 
     @property
-    def MaxChannels(self):
+    def max_channels(self):
         return 6
 
     @property
-    def MaxGroups(self):
+    def max_groups(self):
         return 2
 
     @staticmethod
-    def GetCommonTagDefs(self) -> Dict[ImportantTag, str]:
+    def get_common_tag_defs(self) -> Dict[ImportantTag, str]:
         return {
             ImportantTag.Model: "ОБЩ.model",
             ImportantTag.EngUnits: "ОБЩ.ЕИ",
@@ -76,27 +76,27 @@ class TSPT942(Logika4L):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self):
         return True
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self):
         return 9600
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self):
         return timedelta(minutes=30)
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self):
         return False
 
     @staticmethod
-    def getModelFromImage(self, flashImage: bytes) -> str:
+    def get_model_from_image(self, flashImage: bytes) -> str:
         return chr(flashImage[0x30])
 
     @staticmethod
-    def BuildEUDict(self, euTags: List[DataTag]) -> Dict[str, str]:
+    def build_eu_dict(self, euTags: List[DataTag]) -> Dict[str, str]:
         eus = {}
         if len(euTags) != 1 or euTags[0].Name != "ЕИ" or euTags[0].Value is None:
             raise Exception("incorrect EU tag supplied")
@@ -119,7 +119,7 @@ class TSPT942(Logika4L):
         return eus
 
     @staticmethod
-    def getAdsFileLayout(self, everyone: bool, model: str) -> List[ADSFlashRun]:
+    def get_ads_file_layout(self, everyone: bool, model: str) -> List[ADSFlashRun]:
         lfr = []
 
         bothTVs = False
@@ -143,8 +143,8 @@ class TSPT942(Logika4L):
 
         return lfr
 
-    def readArchiveDefs(self, rows) -> List[ArchiveDef]:
-        la = Logika4L.readArchiveDefs(self, rows)
+    def read_archive_defs(self, rows) -> List[ArchiveDef]:
+        la = Logika4L.read_archive_defs(self, rows)
 
         ah = next((x for x in la if x.ArchiveType == ArchiveType.Hour), None)
         ad = next((x for x in la if x.ArchiveType == ArchiveType.Day), None)
@@ -170,7 +170,7 @@ class TSPT942(Logika4L):
 
         return la
 
-    def GetCalculatedFields(self) -> List[CalcFieldDef]:
+    def get_calculated_fields(self) -> List[CalcFieldDef]:
         cTV = next((x for x in self.Channels if x.Kind == ChannelKind.TV and x.Start == 1), None)
 
         return [

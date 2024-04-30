@@ -9,46 +9,47 @@ from Logika.ECommException import ECommException, ExcSeverity, CommError
 class UDPConnectionXamarin(NetConnection):
     def __init__(self, readTimeout, host, port):
         super().__init__(readTimeout, host, port)
-        self.rcvBuf = bytearray(65535)
-        self.inQue = Queue(65535)
-        self.socket = self.CreateSocket()
+        self.rcv_buf = bytearray(65535)
+        self.in_que = Queue(65535)
+        self.socket = self.create_socket()
 
-    def CreateSocket(self):
+    @staticmethod
+    def create_socket():
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         return s
 
-    def InternalRead(self, buf, Start, Length):
-        ptr = Start
-        nRead = 0
+    def internal_read(self, buf: bytes, start: int, length: int):
+        ptr = start
+        n_read = 0
 
-        while not self.inQue.empty() and nRead < Length:
-            buf[ptr] = self.inQue.get()
+        while not self.in_que.empty() and n_read < length:
+            buf[ptr] = self.in_que.get()
             ptr += 1
-            nRead += 1
+            n_read += 1
 
-        if nRead < Length:
+        if n_read < length:
             if not self.socket.poll(self.ReadTimeout * 1000):
                 raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
             data, _ = self.socket.recvfrom(self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF))
             for byte in data:
-                self.inQue.put(byte)
+                self.in_que.put(byte)
 
-            while not self.inQue.empty() and nRead < Length:
-                buf[ptr] = self.inQue.get()
+            while not self.in_que.empty() and n_read < length:
+                buf[ptr] = self.in_que.get()
                 ptr += 1
-                nRead += 1
+                n_read += 1
 
-        return nRead
+        return n_read
 
-    def InternalPurgeComms(self, flg):
+    def internal_purge_comms(self, flg: PurgeFlags):
         super().InternalPurgeComms(flg)
         if flg & PurgeFlags.RX:
-            self.inQue.queue.clear()
+            self.in_que.queue.clear()
 
-    def isConflictingWith(self, Target):
-        if isinstance(Target, UDPConnectionXamarin):
-            TarCon = Target
+    def is_conflicting_with(self, target):
+        if isinstance(target, UDPConnectionXamarin):
+            TarCon = target
             return TarCon.mSrvHostName == self.mSrvHostName and TarCon.mSrvPort == self.mSrvPort
         return False

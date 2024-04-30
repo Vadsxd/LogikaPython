@@ -2,6 +2,7 @@ import socket
 
 import select
 
+from Logika.Connections.Connection import PurgeFlags
 from Logika.Connections.NetConnection import NetConnection
 from Logika.ECommException import ECommException, ExcSeverity, CommError
 from Logika.Utils.ByteQueue import ByteQueue
@@ -26,10 +27,10 @@ class UDPConnection(NetConnection):
         tar_con = target
         return tar_con.host == self.host and tar_con.port == self.port
 
-    def internal_write(self, buf, start, length):
+    def internal_write(self, buf: bytes, start: int, length: int):
         self.uc.send(buf[start:start + length])
 
-    def on_set_read_timeout(self, new_timeout):
+    def on_set_read_timeout(self, new_timeout: int):
         if self.uc is not None:
             self.uc.settimeout(new_timeout)
 
@@ -50,10 +51,10 @@ class UDPConnection(NetConnection):
                 raise ECommException(ExcSeverity.Stop, CommError.SystemError, se.strerror)
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, se.strerror)
 
-    def internal_read(self, buf, start, max_length):
+    def internal_read(self, buf: bytes, start: int, max_length: int):
         ptr = start
 
-        n_read = self.inQue.Dequeue(buf, start, max_length)
+        n_read = self.inQue.dequeue(buf, start, max_length)
         ptr += n_read
 
         if n_read < max_length:
@@ -62,8 +63,8 @@ class UDPConnection(NetConnection):
 
             data, addr = self.uc.recvfrom(max_length)
             if data:
-                self.inQue.Enqueue(data, 0, data.length)
-                n_read += self.inQue.Dequeue(buf, ptr, max_length - n_read)
+                self.inQue.enqueue(data, 0, data.length)
+                n_read += self.inQue.dequeue(buf, ptr, max_length - n_read)
 
         return n_read
 
@@ -72,6 +73,6 @@ class UDPConnection(NetConnection):
             self.uc.close()
             self.uc = None
 
-    def internal_purge_comms(self, what):
+    def internal_purge_comms(self, what: PurgeFlags):
         while self.uc and self.uc.recv(1024):
             pass

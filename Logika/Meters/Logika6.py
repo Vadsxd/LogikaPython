@@ -40,7 +40,7 @@ class Logika6(ABC, Meter):
         return BusProtocolType.RSbus
 
     @staticmethod
-    def GetEventPrefixForTV(self) -> str:
+    def get_event_prefix_for_tv(self) -> str:
         return ""
 
     @staticmethod
@@ -52,7 +52,7 @@ class Logika6(ABC, Meter):
         else:
             return None
 
-    def GetCommonTagDefs(self) -> Dict[ImportantTag, str]:
+    def get_common_tag_defs(self) -> Dict[ImportantTag, str]:
         ct_dict = {
             ImportantTag.NetAddr: "003",  # --отдельного тега для NT нет - поэтому ImportantTag.NetAddr тоже не будет
             ImportantTag.Ident: "008",
@@ -67,7 +67,7 @@ class Logika6(ABC, Meter):
         return ct_dict
 
     @staticmethod
-    def advanceReadPtr(archiveType: ArchiveType, time: datetime) -> datetime:
+    def advance_read_ptr(archiveType: ArchiveType, time: datetime) -> datetime:
         if archiveType == ArchiveType.Hour:
             return time + timedelta(hours=1)
         elif archiveType == ArchiveType.Day:
@@ -194,7 +194,7 @@ class Logika6(ABC, Meter):
         ch = next((x for x in self.Channels if x.Prefix == "0"), None)
 
         for r in rows:
-            art = ArchiveType.FromString(str(r["ArchiveType"]))
+            art = ArchiveType.from_string(str(r["ArchiveType"]))
             sRecType = "System." + str(r["RecordType"])
             recType = type(sRecType)
             name = str(r["Name"])
@@ -215,7 +215,7 @@ class Logika6(ABC, Meter):
     def read_archive_field_def(self, r):
         chKey = str(r["Channel"])
         ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-        art = ArchiveType.FromString(str(r["ArchiveType"]))
+        art = ArchiveType.from_string(str(r["ArchiveType"]))
         ord = int(r["Ordinal"])
 
         sDataType = "System." + str(r["DataType"])

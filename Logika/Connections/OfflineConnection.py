@@ -1,8 +1,8 @@
-from Logika.Connections.Connection import Connection
+from Logika.Connections.Connection import Connection, PurgeFlags
 
 
 class OfflineConnection(Connection):
-    def __init__(self, owner):
+    def __init__(self, owner: object):
         super().__init__("", -1)
 
     def dispose(self, disposing: bool):
@@ -14,17 +14,17 @@ class OfflineConnection(Connection):
     def internal_close(self):
         pass
 
-    def internal_read(self, buf, start: int, max_length: int):
+    def internal_read(self, buf: bytes, start: int, max_length: int):
         return 0
 
-    def internal_write(self, buf, start: int, n_bytes: int):
+    def internal_write(self, buf: bytes, start: int, n_bytes: int):
         pass
 
-    def on_set_read_timeout(self, new_timeout):
+    def on_set_read_timeout(self, new_timeout: int):
         pass
 
-    def InternalPurgeComms(self, what):
+    def internal_purge_comms(self, what: PurgeFlags):
         pass
 
-    def isConflictingWith(self, target):
+    def is_conflicting_with(self, target: Connection):
         return False

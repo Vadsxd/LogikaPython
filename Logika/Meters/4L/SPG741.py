@@ -10,7 +10,7 @@ class TSPG741(Logika4L):
         super().__init__()
         self.sensors = ["ПД1", "ПД2", "ПД3", "ПД4", "ПД5", "ТС1", "ТС2", "СГ1", "СГ2"]
 
-        self.spParamMap = [
+        self.sp_param_map = [
             ["P1", "dP3", "dP1", "Pб", "P3", "t1", "t2", "Qр1", "Qр2"],  # СП=0
             ["P1", "dP3", "P2", "Pб", "P3", "t1", "t2", "Qр1", "Qр2"],  # СП=1
             ["P1", "dP3", "P2", "dP1", "dP2", "t1", "t2", "Qр1", "Qр2"],  # СП=2
@@ -20,34 +20,34 @@ class TSPG741(Logika4L):
             ["P1", "dP3", "dP1", "P3", "P4", "t1", "t3", "Qр1", ""],  # СП=6
         ]
 
-        self.sensorVars = ["ВД", "ТД", "ВП", "НП", "ЦИ", "КС", "КВ", "КН", "УВ", "УН", "Vн"]
+        self.sensor_vars = ["ВД", "ТД", "ВП", "НП", "ЦИ", "КС", "КВ", "КН", "УВ", "УН", "Vн"]
 
     @property
     def ident_word(self):
         return 0x4729
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.G
 
     @property
-    def Caption(self):
+    def caption(self):
         return "СПГ741"
 
     @property
-    def Description(self):
+    def description(self):
         return "корректор СПГ741"
 
     @property
-    def MaxChannels(self):
+    def max_channels(self):
         return 2
 
     @property
-    def MaxGroups(self):
+    def max_groups(self):
         return 1
 
     @staticmethod
-    def GetCommonTagDefs():
+    def get_common_tag_defs():
         return {
             ImportantTag.EngUnits: ["ОБЩ.[P1]", "ОБЩ.[dP1]", "ОБЩ.[P2]", "ОБЩ.[dP2]", "ОБЩ.[dP3]", "ОБЩ.[Pб]",
                                     "ОБЩ.[P3]", "ОБЩ.[P4]"],
@@ -91,37 +91,37 @@ class TSPG741(Logika4L):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self) -> bool:
         return False
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self) -> int:
         return 2400
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self) -> timedelta:
         return timedelta(minutes=30)
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self) -> bool:
         return False
 
-    def GetMappedDBParamAddr(self, paramName, sp):
+    def get_mapped_db_param_addr(self, paramName, sp):
         DB_FLASH_START = 0x200
         PARAM_SIZE = 16
 
-        paramOrd = self.GetMappedDBParamOrdinal(paramName, sp)
+        paramOrd = self.get_mapped_db_param_ordinal(paramName, sp)
         if paramOrd is None:
             paramOrd = 103
         addr = DB_FLASH_START + paramOrd * PARAM_SIZE
 
         return addr
 
-    def GetMappedDBParamOrdinal(self, paramName, sp):
+    def get_mapped_db_param_ordinal(self, paramName, sp):
         pn = paramName.split('/')
         if len(pn) != 2:
             raise Exception("недопустимое имя параметра СПГ741: {}".format(paramName))
-        sp_map = self.spParamMap[sp]
+        sp_map = self.sp_param_map[sp]
         sensIdx = sp_map.index(pn[1])
         if sensIdx < 0:
             return None
@@ -133,19 +133,19 @@ class TSPG741(Logika4L):
         return MAPPED_PARAMS_START_NO + sensIdx * PARAMS_PER_SENSOR + varIdx
 
     @staticmethod
-    def BuildEUDict(euTags):
+    def build_eu_dict(euTags):
         eus = {}
         if len(euTags) != 8:
             raise Exception("incorrect EU tags supplied")
 
         for t in euTags:
             iEU = int(t.Value) & 0x03 if isinstance(t.Value, int) else ""
-            eus[t.Name] = Logika4.getGasPressureUnits(iEU)
+            eus[t.name] = Logika4.get_gas_pressure_units(iEU)
 
         return eus
 
     @staticmethod
-    def getAdsFileLayout(self, everyone, model):
+    def get_ads_file_layout(self, everyone, model):
         if everyone:
             return [ADSFlashRun(0x00000, 0x17C80)]
         else:
@@ -155,6 +155,6 @@ class TSPG741(Logika4L):
             ]
 
     @staticmethod
-    def getModelFromImage(self, flashImage):
+    def get_model_from_image(self, flashImage):
         return ""
 

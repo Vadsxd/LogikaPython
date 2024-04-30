@@ -19,12 +19,12 @@ class ArchiveFieldDef6(ArchiveFieldDef):
             self.Name = name[:ptPos]
 
     @property
-    def Address(self):
+    def address(self):
         return format(self.Ordinal, "000")
 
     @property
-    def Key(self):
-        return self.Address
+    def key(self):
+        return self.address
 
 
 class ArchiveFieldDef4(ArchiveFieldDef):
@@ -34,7 +34,7 @@ class ArchiveFieldDef4(ArchiveFieldDef):
         self.Units = units
 
     @property
-    def Key(self):
+    def key(self):
         return self.Name
 
 

@@ -36,11 +36,11 @@ class ECommException(Exception):
         # через это поле путешествуют логи TAPI при неудачных попытках соединиться через модем
         self.ExtendedInfo = ext_info
 
-
-def get_enum_description(ct):
-    mem_info = inspect.getmembers(ct)
-    if mem_info:
-        attrs = getattr(mem_info[0][1], '__annotations__', None)
-        if attrs and 'Description' in attrs:
-            return attrs['Description']
-    return ct.value
+    @staticmethod
+    def get_enum_description(ct):
+        mem_info = inspect.getmembers(ct)
+        if mem_info:
+            attrs = getattr(mem_info[0][1], '__annotations__', None)
+            if attrs and 'Description' in attrs:
+                return attrs['Description']
+        return ct.value

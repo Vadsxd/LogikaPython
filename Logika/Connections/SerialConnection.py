@@ -32,17 +32,17 @@ class SerialConnection(ABC, Connection):
         super().__init__(port_name, read_timeout)
 
     @property
-    def CanChangeBaudrate(self):
+    def can_change_baudrate(self) -> bool:
         return True
 
     @property
-    def BaudRate(self):
+    def baud_rate(self):
         raise NotImplementedError
 
     @abstractmethod
-    def SetStopBits(self, stop_bits: StopBits):
+    def set_stop_bits(self, stop_bits: StopBits):
         pass
 
     @abstractmethod
-    def SetParams(self, baud_rate: BaudRate, data_bits, stop_bits: StopBits, parity: Parity):
+    def set_params(self, baud_rate: BaudRate, data_bits: int, stop_bits: StopBits, parity: Parity):
         pass

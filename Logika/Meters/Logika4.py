@@ -91,27 +91,27 @@ class Logika4(ABC, Meter):
     def bus_type(self) -> BusProtocolType:
         return BusProtocolType.RSbus
 
-    def GetEventPrefixForTV(self, TVnum: int) -> str:
+    def get_event_prefix_for_tv(self, TVnum: int) -> str:
         if self.MaxGroups == 1:
             return ""
         else:
             return f"ТВ{TVnum} "
 
     @staticmethod
-    def advanceReadPtr(archiveType: ArchiveType, time: datetime) -> datetime:
+    def advance_read_ptr(archiveType: ArchiveType, time: datetime) -> datetime:
         if archiveType == ArchiveType.Hour:
             return time + timedelta(days=1)
         elif archiveType in (ArchiveType.Day, ArchiveType.Control):
             return time + timedelta(weeks=4)
         elif archiveType == ArchiveType.Month:
             return time + timedelta(weeks=52)
-        elif archiveType == ArchiveType.IsServiceArchive:
+        elif archiveType == ArchiveType.is_service_archive:
             return time + timedelta(days=7)
         else:
             raise Exception("Unsupported archive")
 
     @staticmethod
-    def getGasPressureUnits(euParamValue: int) -> str:
+    def get_gas_pressure_units(euParamValue: int) -> str:
         units = {
             0: "кПа",
             1: "МПа",
@@ -121,17 +121,17 @@ class Logika4(ABC, Meter):
         return units.get(euParamValue, "кПа")
 
     @staticmethod
-    def BitNumbers(val: int, nBits: int, nOffset: int) -> List[int]:
+    def bit_numbers(val: int, nBits: int, nOffset: int) -> List[int]:
         bitNumbers = [ib + nOffset for ib in range(nBits) if val & (1 << ib)]
         return bitNumbers
 
     @staticmethod
-    def BitNumbersFromArray(array: List[int], offset: int, nBits: int) -> List[int]:
+    def bit_numbers_from_array(array: List[int], offset: int, nBits: int) -> List[int]:
         bitNumbers = [i for i in range(nBits) if array[offset + i // 8] & (1 << i % 8)]
         return bitNumbers
 
     @staticmethod
-    def CombineDateTime(dateTag: str, timeTag: str) -> datetime:
+    def combine_date_time(dateTag: str, timeTag: str) -> datetime:
         dt = [int(x) for x in dateTag.split('.')]
         tt = [int(x) for x in timeTag.split(':')]
         return datetime(2000 + dt[2], dt[1], dt[0], tt[0], tt[1], tt[2])
@@ -168,19 +168,19 @@ class Logika4(ABC, Meter):
             return eu_def
 
     @abstractmethod
-    def SupportsBaudRateChangeRequests(self) -> bool:
+    def supports_baud_rate_change_requests(self) -> bool:
         pass
 
     @abstractmethod
-    def MaxBaudRate(self) -> int:
+    def max_baud_rate(self) -> int:
         pass
 
     @abstractmethod
-    def SessionTimeout(self):
+    def session_timeout(self):
         pass
 
     @abstractmethod
-    def SupportsFastSessionInit(self) -> bool:
+    def supports_fast_session_init(self) -> bool:
         pass
 
     @abstractmethod

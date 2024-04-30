@@ -11,7 +11,7 @@ class DataTag(Tag):
                 self.addr += refTag.ChannelDef.Prefix + str(channelNo)
         else:
             td = refTag
-            self.addr = (td.ChannelDef.Prefix + str(channelNo) + "_" if channelNo > 0 else "") + td.Name
+            self.addr = (td.ChannelDef.Prefix + str(channelNo) + "_" if channelNo > 0 else "") + td.name
 
     def __init__(self, t):
         super().__init__(t)
@@ -35,8 +35,8 @@ class DataTag(Tag):
     def __str__(self):
         idxStr = "н{0:d2}".format(self.Index) if self.Index is not None else ""
         euStr = "[" + self.EU.strip() + "]" if self.EU.strip() else ""
-        return "{0}.{1:d3}{2}({3}) = {4} {5}".format(self.Channel.Name, self.deffintion.Ordinal, idxStr,
-                                                     self.deffintion.Name, self.Value, euStr)
+        return "{0}.{1:d3}{2}({3}) = {4} {5}".format(self.Channel.name, self.deffintion.ordinal, idxStr,
+                                                     self.deffintion.name, self.Value, euStr)
 
 
 class DataTag6Container(Tag):
@@ -46,9 +46,9 @@ class DataTag6Container(Tag):
 
     @property
     def Address(self):
-        return self.deffintion.Address
+        return self.deffintion.address
 
     def __str__(self):
         containerType = self.deffintion.NodeType[0]
-        return "<{0}> {1}.{2:d3} ({3})".format(containerType, self.Channel.Name,
-                                               self.deffintion.Ordinal, self.deffintion.Description)
+        return "<{0}> {1}.{2:d3} ({3})".format(containerType, self.Channel.name,
+                                               self.deffintion.ordinal, self.deffintion.description)

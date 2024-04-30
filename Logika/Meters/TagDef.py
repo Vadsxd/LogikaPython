@@ -17,17 +17,17 @@ class TagDef(ItemDefBase):
     @property
     def DbType(self):
         if not self.dbType:
-            if self.ElementType.Name == "Byte":
+            if self.ElementType.name == "Byte":
                 return "tinyint"
-            elif self.ElementType.Name == "Int32":
+            elif self.ElementType.name == "Int32":
                 return "int"
-            elif self.ElementType.Name == "Int64":
+            elif self.ElementType.name == "Int64":
                 return "bigint"
-            elif self.ElementType.Name == "Single":
+            elif self.ElementType.name == "Single":
                 return "real"
-            elif self.ElementType.Name == "Double":
+            elif self.ElementType.name == "Double":
                 return "float"
-            elif self.ElementType.Name == "String":
+            elif self.ElementType.name == "String":
                 return "varchar(128)"
             else:
                 raise NotImplementedError("cannot map DataType to DbType")

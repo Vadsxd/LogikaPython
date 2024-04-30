@@ -56,19 +56,19 @@ class Logika4L(ABC, Logika4):
                     ' ', ' ', ' ', ' ', 'Д', 'Ц', 'Щ', 'д', 'ф', 'ц', 'щ']
 
     @property
-    def SupportedByProlog4(self) -> bool:
+    def supported_by_prolog4(self) -> bool:
         return True
 
     @property
-    def Outdated(self) -> bool:
+    def outdated(self) -> bool:
         return True
 
     @staticmethod
-    def GetValue(binaryType, buffer, offset, operFlag):
+    def get_value(binaryType, buffer, offset, operFlag):
         operFlag = False
 
         if binaryType == BinaryType.r32:
-            Val = Logika4L.GetMFloat(buffer, offset)
+            Val = Logika4L.get_m_float(buffer, offset)
             return Val
 
         elif binaryType == BinaryType.time:
@@ -85,20 +85,20 @@ class Logika4L(ABC, Logika4):
             return Dt.strftime("%d/%m")
 
         elif binaryType == BinaryType.bitArray8:
-            return Logika4.BitNumbers(buffer[offset], 8, 0)
+            return Logika4.bit_numbers(buffer[offset], 8, 0)
 
         elif binaryType == BinaryType.bitArray16:
             usv = int.from_bytes(buffer[offset:offset + 2], byteorder='little')
-            return Logika4.BitNumbers(usv, 16, 8)
+            return Logika4.bit_numbers(usv, 16, 8)
 
         elif binaryType == BinaryType.bitArray24:
             bExt = bytearray([0, 0, 0]) + buffer[offset:offset + 3]
             ulv = int.from_bytes(bExt, byteorder='little')
-            return Logika4.BitNumbers(ulv, 24, 0)
+            return Logika4.bit_numbers(ulv, 24, 0)
 
         elif binaryType == BinaryType.bitArray32:
             u32v = int.from_bytes(buffer[offset:offset + 4], byteorder='little')
-            return Logika4.BitNumbers(u32v, 32, 0)
+            return Logika4.bit_numbers(u32v, 32, 0)
 
         elif binaryType == BinaryType.dbentry:
             PARAM_BIN_PART_LEN = 4
@@ -119,14 +119,14 @@ class Logika4L(ABC, Logika4):
             return buffer[offset]
 
         elif binaryType == BinaryType.r32x3:
-            v1 = Logika4L.GetMFloat(buffer, offset)
-            v2 = Logika4L.GetMFloat(buffer, offset + 4)
-            v3 = Logika4L.GetMFloat(buffer, offset + 8)
+            v1 = Logika4L.get_m_float(buffer, offset)
+            v2 = Logika4L.get_m_float(buffer, offset + 4)
+            v3 = Logika4L.get_m_float(buffer, offset + 8)
             return v1 + v2 + v3
 
         elif binaryType == BinaryType.i32r32:
             intPart = int.from_bytes(buffer[offset:offset + 4], byteorder='little', signed=True)
-            floatPart = Logika4L.GetMFloat(buffer, offset + 4)
+            floatPart = Logika4L.get_m_float(buffer, offset + 4)
             vtv = float(intPart) + floatPart
             return vtv
 
@@ -150,7 +150,7 @@ class Logika4L(ABC, Logika4):
             hour = buffer[offset + 4]
             minutes = buffer[offset + 5]
 
-            if year == 0xFF or mon == 0 or mon > 12 or day == 0 or day > 31 or hour > 23 or min > 59:
+            if year == 0xFF or mon == 0 or mon > 12 or day == 0 or day > 31 or hour > 23 or minutes > 59:
                 return datetime.min
             try:
                 return datetime(year + 2000, mon, day, hour, minutes, 0, tzinfo=timezone.utc)
@@ -161,13 +161,13 @@ class Logika4L(ABC, Logika4):
             return f"НС{buffer[offset + 6]:02d}{'+' if (buffer[offset + 7] & 1) > 0 else '-'}"
 
         elif binaryType == BinaryType.IZMrecord:
-            return Logika4L.LcdCharsToString(buffer, offset + 8, 16).strip()
+            return Logika4L.lcd_chars_to_string(buffer, offset + 8, 16).strip()
 
         else:
             raise Exception(f"unsupported binary type in GetValue: '{binaryType}'")
 
     @staticmethod
-    def SizeOf(dataType):
+    def size_of(dataType):
         if dataType == BinaryType.u8 or dataType == BinaryType.bitArray8:
             return 1
         elif dataType == BinaryType.bitArray16:
@@ -198,7 +198,7 @@ class Logika4L(ABC, Logika4):
             raise Exception("unknown type")
 
     @staticmethod
-    def GetMFloat(buf, offset):
+    def get_m_float(buf, offset):
         i = int.from_bytes(buf[offset:offset + 4], byteorder='little')
 
         sign = (i >> 23) & 1
@@ -213,7 +213,7 @@ class Logika4L(ABC, Logika4):
         return struct.unpack('<f', i.to_bytes(4, byteorder='little'))[0]
 
     @staticmethod
-    def LcdCharsToString(buf, offset, length):
+    def lcd_chars_to_string(buf, offset, length):
         result = [''] * length
 
         for i in range(length):
@@ -223,7 +223,7 @@ class Logika4L(ABC, Logika4):
         return ''.join(result)
 
     @staticmethod
-    def syncHeaderToDatetime(arType, rd, rh, buffer, offset):
+    def sync_header_to_datetime(arType, rd, rh, buffer, offset):
         rawhdr = int.from_bytes(buffer[offset:offset + 4], byteorder='little')
         if rawhdr == 0x00000000 or rawhdr == 0xFFFFFFFF:
             return None
@@ -245,22 +245,22 @@ class Logika4L(ABC, Logika4):
         return "L4"
 
     @property
-    def tagsSort(self):
+    def tags_sort(self):
         return "Device, Channel, Ordinal"
 
     @property
-    def archiveFieldsSort(self):
+    def archive_fields_sort(self):
         return "Device, ArchiveType, FieldOffset"
 
     @abstractmethod
-    def getModelFromImage(self, flashImage):
+    def get_model_from_image(self, flashImage):
         pass
 
     @abstractmethod
-    def getAdsFileLayout(self, everyone: bool, model: str):
+    def get_ads_file_layout(self, everyone: bool, model: str):
         pass
 
-    def readTagDef(self, r):
+    def read_tag_def(self, r):
         self.readCommonDef(r)
         chKey = r["Channel"]
         ch = next((x for x in self.Channels if x.Prefix == chKey), None)
@@ -277,12 +277,12 @@ class Logika4L(ABC, Logika4):
         return TagDef4L(ch, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, dbType, units,
                         displayFormat, descriptionEx, ranging, nativeType, inRam, addr, chOfs, addonAddr, addonChOfs)
 
-    def readArchiveDefs(self, rows):
+    def read_archive_defs(self, rows):
         d = []
         for r in rows:
             chKey = r["Channel"]
             ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-            art = ArchiveType.FromString(r["ArchiveType"])
+            art = ArchiveType.from_string(r["ArchiveType"])
             name = r["Name"]
             desc = r["Description"]
             sRecType = "System." + r["RecordType"]
@@ -300,8 +300,8 @@ class Logika4L(ABC, Logika4):
 
         return d
 
-    def readArchiveFieldDef(self, r):
-        art = ArchiveType.FromString(r["ArchiveType"])
+    def read_archive_field_def(self, r):
+        art = ArchiveType.from_string(r["ArchiveType"])
         ra = next((x for x in self.Archives if x.ArchiveType == art), None)
         sDataType = "System." + r["DataType"]
         t = type(sDataType)

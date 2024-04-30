@@ -16,27 +16,27 @@ class TSPG742(Logika4M):
         return 0x472A
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self) -> MeasureKind:
         return MeasureKind.G
 
     @property
-    def Caption(self):
+    def caption(self) -> str:
         return "СПГ742"
 
     @property
-    def Description(self):
+    def description(self) -> str:
         return "корректор СПГ742"
 
     @property
-    def MaxChannels(self):
+    def max_channels(self) -> int:
         return 4
 
     @property
-    def MaxGroups(self):
+    def max_groups(self) -> int:
         return 1
 
     @staticmethod
-    def GetCommonTagDefs(self) -> Dict[ImportantTag, object]:
+    def get_common_tag_defs(self) -> Dict[ImportantTag, object]:
         return {
             ImportantTag.SerialNo: "ОБЩ.serial",
             ImportantTag.NetAddr: "ОБЩ.NT",
@@ -48,15 +48,15 @@ class TSPG742(Logika4M):
         }
 
     @staticmethod
-    def BuildEUDict(euTags: List[DataTag]) -> Dict[str, str]:
+    def build_eu_dict(euTags: List[DataTag]) -> Dict[str, str]:
         eus = {}
         for t in euTags:
             iEU = int(t.Value)
-            eus[t.Name] = Logika4.getGasPressureUnits(iEU)
+            eus[t.Name] = Logika4.get_gas_pressure_units(iEU)
         return eus
 
     @staticmethod
-    def getNsDescriptions(self) -> List[str]:
+    def get_ns_descriptions(self) -> List[str]:
         return [
             "Разряд батареи",
             "Частота входного сигнала на разъеме Х7 превышает 1,5 кГц",
@@ -90,31 +90,31 @@ class TSPG742(Logika4M):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self) -> bool:
         return True
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self) -> int:
         return 57600
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self) -> timedelta:
         return timedelta(minutes=1)
 
     @property
-    def SupportsFastSessionInit(self) -> bool:
+    def supports_fast_session_init(self) -> bool:
         return True
 
     @property
-    def SupportsArchivePartitions(self) -> bool:
+    def supports_archive_partitions(self) -> bool:
         return True
 
     @property
-    def SupportsFLZ(self) -> bool:
+    def supports_flz(self) -> bool:
         return False
 
     @staticmethod
-    def getADSTagBlocks(self):
+    def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
         return [
             AdsTagBlock(0, 0, 0, 64),  # БД ch0
             AdsTagBlock(1, 1, 0, 64),  # БД ch1

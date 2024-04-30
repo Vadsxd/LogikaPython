@@ -7,5 +7,5 @@ class ItemDefBase:
         self.ElementType = elementType
 
     @property
-    def Meter(self):
-        return self.ChannelDef.Meter
+    def meter(self):
+        return self.ChannelDef.meter

@@ -15,7 +15,7 @@ class IntervalArchive(Archive):
     def __init__(self, mtr: Meter, arType: ArchiveType):
         super().__init__(mtr, arType)
 
-        if not arType.IsIntervalArchive:
+        if not arType.is_interval_archive:
             raise ValueError("wrong archive type")
 
         self.Table = DataTable("{0}-{1}".format(type(mtr).__name__, arType.Name))
@@ -26,7 +26,7 @@ class IntervalArchive(Archive):
     def __init__(self, mtr: Meter, arType: ArchiveType, template: DataTable):
         self.__init__(mtr, arType)
 
-        if not arType.IsIntervalArchive:
+        if not arType.is_interval_archive:
             raise ValueError("wrong archive type")
 
         for c in template.Columns:
@@ -50,18 +50,18 @@ class ArchiveFieldCollection:
         return len(self.owner.Table.Columns)
 
     @property
-    def SyncRoot(self):
+    def sync_root(self):
         return self.owner.Table.Columns
 
     @property
-    def IsSynchronized(self):
+    def is_synchronized(self) -> bool:
         return False
 
     @property
-    def IsReadOnly(self):
+    def is_read_only(self):
         return True
 
-    def copyTo(self, array, index):
+    def copy_to(self, array, index):
         vta = [self.owner.Table.Columns[i].ExtendedProperties[Archive.FLD_EXTPROP_KEY] for i in
                range(len(self.owner.Table.Columns))]
         for i, v in enumerate(vta):
@@ -98,7 +98,7 @@ class ServiceArchive(Archive):
     def __init__(self, mtr, arType):
         super().__init__(mtr, arType)
 
-        if not arType.IsServiceArchive:
+        if not arType.is_service_archive:
             raise ValueError("wrong archive type")
 
         self.Records = []

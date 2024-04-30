@@ -13,38 +13,38 @@ class TSPT941(Logika4L):
         return 0x5429
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.T
 
     @property
-    def Caption(self):
+    def caption(self):
         return "СПТ941"
 
     @property
-    def Description(self):
+    def description(self):
         return "тепловычислитель СПТ941, мод. 01 - 08"
 
     @property
-    def MaxChannels(self):
+    def max_channels(self):
         return 3
 
     @property
-    def MaxGroups(self):
+    def max_groups(self):
         return 1
 
     @property
-    def SupportedByProlog4(self):
+    def supported_by_prolog4(self):
         return False
 
-    def BuildEUDict(self, euTags):
+    def build_eu_dict(self, euTags):
         raise NotImplementedError("not supported")
 
     @staticmethod
-    def getModelFromImage(self, flashImage):
+    def get_model_from_image(self, flashImage):
         return ""
 
     @staticmethod
-    def GetCommonTagDefs(self):
+    def get_common_tag_defs(self):
         return {
             ImportantTag.NetAddr: "ОБЩ.NT",
             ImportantTag.Ident: "ОБЩ.ИД",
@@ -62,23 +62,23 @@ class TSPT941(Logika4L):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self):
         return False
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self):
         return 2400
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self):
         return timedelta(minutes=30)
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self):
         return False
 
     @staticmethod
-    def getAdsFileLayout(self, everyone, model):
+    def get_ads_file_layout(self, everyone, model):
         if everyone:
             return [
                 ADSFlashRun(0x00000, 0xD880)

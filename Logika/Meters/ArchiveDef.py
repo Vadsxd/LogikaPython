@@ -33,7 +33,7 @@ class MultipartArchiveDef6(ArchiveDef):
         self.Ordinals = Ordinals
 
     @property
-    def Ordinal(self):
+    def ordinal(self):
         raise Exception("'ordinal' is not available for class")
 
 

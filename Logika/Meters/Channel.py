@@ -15,19 +15,19 @@ class ChannelDef:
 
     def __init__(self, Meter, Prefix: str, Start: int, Count: int, Description: str):
         self.Meter = Meter
-        self.Kind = Meter.getChannelKind(Start, Count, Prefix)
+        self.Kind = Meter.get_channel_kind(Start, Count, Prefix)
         self.Prefix = Prefix
         self.Start = Start
         self.Count = Count
         self.Description = Description
 
     def __init__(self, a):
-        self.Meter = a.Meter
+        self.Meter = a.meter
         self.Kind = a.Kind
         self.Prefix = a.Prefix
         self.Start = a.Start
         self.Count = a.Count
-        self.Description = a.Description
+        self.Description = a.description
 
     def __str__(self):
         return self.Prefix + " (" + self.Description + ")"

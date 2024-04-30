@@ -32,7 +32,7 @@ class ByteQueue:
 
             self.fSizeUntilCut = len(self.fInternalBuffer) - self.fHead
 
-    def SetCapacity(self, capacity: int):
+    def set_capacity(self, capacity: int):
         newBuffer = bytearray(capacity)
 
         if self.fSize > 0:
@@ -47,12 +47,12 @@ class ByteQueue:
         self.fTail = self.fSize
         self.fInternalBuffer = newBuffer
 
-    def Enqueue(self, buffer, offset, size):
+    def enqueue(self, buffer: bytes, offset: int, size: int):
         if size == 0:
             return
 
         if (self.fSize + size) > len(self.fInternalBuffer):
-            self.SetCapacity((self.fSize + size + 2047) & ~2047)
+            self.set_capacity((self.fSize + size + 2047) & ~2047)
 
         if self.fHead < self.fTail:
             rightLength = len(self.fInternalBuffer) - self.fTail
@@ -69,7 +69,7 @@ class ByteQueue:
         self.fSize += size
         self.fSizeUntilCut = len(self.fInternalBuffer) - self.fHead
 
-    def Dequeue(self, buffer, offset, size):
+    def dequeue(self, buffer: bytes, offset: int, size: int):
         if size > self.fSize:
             size = self.fSize
 
@@ -97,6 +97,6 @@ class ByteQueue:
         self.fSizeUntilCut = len(self.fInternalBuffer) - self.fHead
         return size
 
-    def PeekOne(self, index):
+    def peek_one(self, index: int):
         return self.fInternalBuffer[index - self.fSizeUntilCut] if index >= self.fSizeUntilCut else \
             self.fInternalBuffer[self.fHead + index]

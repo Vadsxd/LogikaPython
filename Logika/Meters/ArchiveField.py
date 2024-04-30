@@ -10,7 +10,7 @@ class ArchiveField(Tag):
 
     def __init__(self, vt):
         super().__init__(vt)
-        self.Caption = vt.Caption
+        self.Caption = vt.caption
         self.EU = vt.EU
 
     @property
@@ -24,11 +24,11 @@ class ArchiveField(Tag):
     @property
     def Address(self):
         if isinstance(self.deffinition, ArchiveFieldDef6):
-            return self.deffinition.Address
+            return self.deffinition.address
         else:
-            return str(self.deffinition.Ordinal)
+            return str(self.deffinition.ordinal)
 
     def __str__(self):
         sChNum = "" if self.Channel.No == 0 else str(self.Channel.No)
         euStr = "[" + self.EU.strip() + "]" if self.EU and self.EU.strip() else ""
-        return "{0} {1} {2}".format(self.Channel.Name, self.deffinition.Name, euStr)
+        return "{0} {1} {2}".format(self.Channel.name, self.deffinition.name, euStr)

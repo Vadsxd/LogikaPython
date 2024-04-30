@@ -15,34 +15,34 @@ class TSPT943(Logika4L):
         super().__init__()
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.T
 
     @property
-    def Caption(self):
+    def caption(self):
         return "СПТ943"
 
     @property
-    def Description(self):
+    def description(self):
         return "тепловычислитель СПТ943"
 
     @property
-    def MaxChannels(self):
+    def max_channels(self):
         return 6
 
     @property
-    def MaxGroups(self):
+    def max_groups(self):
         return 2
 
     @property
     def ident_word(self):
         return 0x542B
 
-    def IdentMatch(self, id0, id1, ver):
+    def ident_match(self, id0, id1, ver):
         return super().IdentMatch(id0, id1, ver) and ver < 0x0A
 
     @staticmethod
-    def GetCommonTagDefs(self) -> Dict[ImportantTag, str]:
+    def get_common_tag_defs(self) -> Dict[ImportantTag, str]:
         return {
             ImportantTag.Model: "ОБЩ.model",
             ImportantTag.EngUnits: "ОБЩ.ЕИ",
@@ -60,30 +60,30 @@ class TSPT943(Logika4L):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self) -> bool:
         return True
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self) -> int:
         return 19200
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self) -> timedelta:
         return timedelta(minutes=2)
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self) -> bool:
         return True
 
     @staticmethod
-    def getModelFromImage(self, flashImage: bytes) -> str:
+    def get_model_from_image(self, flashImage: bytes) -> str:
         return chr(flashImage[0x30])
 
-    def BuildEUDict(self, euTags: List[DataTag]) -> Dict[str, str]:
-        return TSPT942.BuildEUDict(self, euTags)
+    def build_eu_dict(self, euTags: List[DataTag]) -> Dict[str, str]:
+        return TSPT942.build_eu_dict(self, euTags)
 
     @staticmethod
-    def getAdsFileLayout(self, everyone, model):
+    def get_ads_file_layout(self, everyone, model) -> List[ADSFlashRun]:
         if everyone:
             return [
                 ADSFlashRun(0x00000, 0x3A980)
@@ -95,7 +95,7 @@ class TSPT943(Logika4L):
                 ADSFlashRun(0x33B80, 0x6E00),
             ]
 
-    def GetCalculatedFields(self) -> List[CalcFieldDef]:
+    def get_calculated_fields(self) -> List[CalcFieldDef]:
         cTV = next(x for x in self.Channels if x.Kind == ChannelKind.TV)
         return [
             CalcFieldDef(

@@ -9,12 +9,12 @@ from Logika.ECommException import ECommException, ExcSeverity, CommError
 
 
 class TCPConnection(NetConnection):
-    def __init__(self, readTimeout, host, port):
-        super().__init__(readTimeout, host, port)
+    def __init__(self, read_timeout, host, port):
+        super().__init__(read_timeout, host, port)
         self.socket = None
         self.WSAETIMEDOUT = 10060
-        self.connectEnded = threading.Event()
-        self.connectException = None
+        self.connect_ended = threading.Event()
+        self.connect_exception = None
 
     def dispose(self, disposing: bool):
         if disposing:
@@ -28,8 +28,8 @@ class TCPConnection(NetConnection):
 
         connectDetails = None
 
-        self.connectEnded.clear()
-        self.connectException = None
+        self.connect_ended.clear()
+        self.connect_exception = None
 
         try:
             self.socket.connect((self.host, self.port))
@@ -40,8 +40,8 @@ class TCPConnection(NetConnection):
                 self.socket = None
                 raise socket.error(self.WSAETIMEDOUT)
             else:
-                if self.connectException:
-                    raise self.connectException
+                if self.connect_exception:
+                    raise self.connect_exception
 
         except socket.error as se:
             if se.errno == socket.errno.ENOENT:
@@ -54,27 +54,27 @@ class TCPConnection(NetConnection):
             self.socket.close()
             self.socket = None
 
-    def on_set_read_timeout(self, newTimeout):
+    def on_set_read_timeout(self, new_timeout: int):
         if self.socket:
-            self.socket.settimeout(newTimeout)
+            self.socket.settimeout(new_timeout)
 
     def on_connect(self):
         try:
             self.socket.getpeername()
 
         except Exception as e:
-            self.connectException = e
+            self.connect_exception = e
 
         finally:
-            self.connectEnded.set()
+            self.connect_ended.set()
 
-    def isConflictingWith(self, Target):
-        if not isinstance(Target, TCPConnection):
+    def is_conflicting_with(self, target):
+        if not isinstance(target, TCPConnection):
             return False
-        TarCon = Target
+        TarCon = target
         return TarCon.mSrvHostName == self.mSrvHostName and TarCon.mSrvPort == self.mSrvPort
 
-    def InternalRead(self, buf, Start, MaxLength):
+    def internal_read(self, buf, Start, MaxLength):
         if not self.socket.poll(self.ReadTimeout * 1000):
             raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
@@ -92,13 +92,13 @@ class TCPConnection(NetConnection):
 
         return nBytes
 
-    def InternalWrite(self, buf, Start, len):
+    def internal_write(self, buf: bytes, Start: int, length: int):
         errcode = SocketError()
-        _, errcode = self.socket.Send(buf, Start, len, SocketFlags.None)
+        _, errcode = self.socket.Send(buf, Start, length, SocketFlags.None)
         if errcode != SocketError.Success:
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.ToString())
 
-    def InternalPurgeComms(self, flg):
+    def internal_purge_comms(self, flg: PurgeFlags):
         if self.State != ConnectionState.Connected:
             return
 

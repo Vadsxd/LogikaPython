@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Dict, List
 
 from Logika.Meters.Types import MeasureKind, ImportantTag
 from Logika4M import Logika4M, AdsTagBlock
@@ -14,27 +15,27 @@ class TSPG740(Logika4M):
         return 0x4728
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.G
 
     @property
-    def Caption(self) -> str:
+    def caption(self) -> str:
         return "СПГ740"
 
     @property
-    def Description(self) -> str:
+    def description(self) -> str:
         return "корректор СПГ740"
 
     @property
-    def MaxChannels(self) -> int:
+    def max_channels(self) -> int:
         return 3
 
     @property
-    def MaxGroups(self) -> int:
+    def max_groups(self) -> int:
         return 1
 
     @staticmethod
-    def getNsDescriptions(self):
+    def get_ns_descriptions(self):
         return [
             "Разряд батареи (Uб < 3,2 В)",  # 00
             "Изменение сигнала на дискретном входе",
@@ -67,7 +68,7 @@ class TSPG740(Logika4M):
         ]
 
     @staticmethod
-    def GetCommonTagDefs(self):
+    def get_common_tag_defs(self):
         return {
             ImportantTag.SerialNo: "ОБЩ.serial",
             ImportantTag.NetAddr: "ОБЩ.NT",
@@ -79,31 +80,31 @@ class TSPG740(Logika4M):
         }
 
     @staticmethod
-    def BuildEUDict(euTags):
-        return TSPG742.BuildEUDict(euTags)
+    def build_eu_dict(euTags) -> Dict[str, str]:
+        return TSPG742.build_eu_dict(euTags)
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self) -> bool:
         return True
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self) -> int:
         return 57600
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self) -> timedelta:
         return timedelta(minutes=1)  # 1 min
 
     @property
-    def SupportsArchivePartitions(self) -> bool:
+    def supports_archive_partitions(self) -> bool:
         return True
 
     @property
-    def SupportsFLZ(self) -> bool:
+    def supports_flz(self) -> bool:
         return False
 
     @staticmethod
-    def getADSTagBlocks(self):
+    def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
         return [
             AdsTagBlock(0, 0, 0, 55),  # БД ОБЩ
             AdsTagBlock(1, 1, 0, 25),  # БД канал 1

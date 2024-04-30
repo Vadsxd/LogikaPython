@@ -12,34 +12,34 @@ class TSPT941_10(Logika4L):
         super().__init__()
 
     @property
-    def MeasureKind(self):
+    def measure_kind(self):
         return MeasureKind.T
 
     @property
-    def Caption(self):
+    def caption(self):
         return "СПТ941.10/11"
 
     @property
-    def Description(self):
+    def description(self) -> str:
         return "тепловычислитель СПТ941, мод. 10, 11"
 
     @property
-    def MaxChannels(self):
+    def max_channels(self):
         return 3
 
     @property
-    def MaxGroups(self):
+    def max_groups(self):
         return 1
 
     @property
     def ident_word(self):
         return 0x9229
 
-    def IdentMatch(self, id0, id1, ver):
+    def ident_match(self, id0, id1, ver):
         return super().IdentMatch(id0, id1, ver) and ver < 0x80
 
     @staticmethod
-    def GetCommonTagDefs():
+    def get_common_tag_defs():
         return {
             ImportantTag.Model: "ОБЩ.model",
             ImportantTag.EngUnits: "ОБЩ.ЕИ",
@@ -74,30 +74,30 @@ class TSPT941_10(Logika4L):
         ]
 
     @property
-    def SupportsBaudRateChangeRequests(self):
+    def supports_baud_rate_change_requests(self):
         return True
 
     @property
-    def MaxBaudRate(self):
+    def max_baud_rate(self):
         return 19200
 
     @property
-    def SessionTimeout(self):
+    def session_timeout(self):
         return timedelta(minutes=2)
 
     @property
-    def SupportsFastSessionInit(self):
+    def supports_fast_session_init(self):
         return True
 
     @staticmethod
-    def getModelFromImage(self, flashImage):
+    def get_model_from_image(self, flashImage):
         return "1" + chr(flashImage[0x30])
 
-    def BuildEUDict(self, euTags):
-        return TSPT942.BuildEUDict(self, euTags)
+    def build_eu_dict(self, euTags):
+        return TSPT942.build_eu_dict(self, euTags)
 
     @staticmethod
-    def getAdsFileLayout(self, everyone, model):
+    def get_ads_file_layout(self, everyone, model):
         if everyone:
             return [
                 ADSFlashRun(0x00000, 0x1200),
@@ -110,7 +110,7 @@ class TSPT941_10(Logika4L):
                 ADSFlashRun(0x12140, 0x4740),
             ]
 
-    def GetCalculatedFields(self):
+    def get_calculated_fields(self):
         return [
             CalcFieldDef(
                 self.Channels[0],

@@ -12,7 +12,7 @@ class M4Packet:
         self.Data = bytearray()
         self.Check = 0
 
-    def getDump(self):
+    def get_dump(self):
         lb = [M4Protocol.FRAME_START, self.NT]
 
         if self.Extended:
