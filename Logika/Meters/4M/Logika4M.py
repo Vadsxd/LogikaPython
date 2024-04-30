@@ -200,3 +200,5 @@ class Logika4M(ABC, Logika4):
         displayFormat = str(r["DisplayFormat"])
 
         return ArchiveFieldDef4M(ra, idx, name, desc, stv, t, sDbType, displayFormat, units)
+
+
