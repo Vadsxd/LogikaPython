@@ -61,8 +61,8 @@ class Logika6(ABC, Meter):
             ImportantTag.EngUnits: "030н00",
             ImportantTag.Model: "099",
         }
-        # TODO: не понятно откуда MeasureKind
-        if self.MeasureKind == MeasureKind.T:
+
+        if self.measure_kind == MeasureKind.T:
             ct_dict[ImportantTag.ParamsCSum] = "054н06"
         return ct_dict
 
