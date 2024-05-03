@@ -3,7 +3,7 @@ import threading
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from enum import IntEnum, Flag, auto
+from enum import Flag, auto
 from typing import List, Optional
 
 from Logika.ECommException import ECommException, ExcSeverity, CommError
@@ -28,7 +28,7 @@ class ManualResetEvent:
             self.event.wait()
 
 
-class ConnectionType(IntEnum):
+class ConnectionType(Enum):
     Offline = (-1, "Отключено")
     Serial = (0, "COM порт")
     Modem = (1, "Модем")
@@ -42,7 +42,7 @@ class PurgeFlags(Flag):
     TX = auto()
 
 
-class ConnectionState(IntEnum):
+class ConnectionState(Enum):
     NotConnected = 0
     Connecting = 1
     Connected = 2

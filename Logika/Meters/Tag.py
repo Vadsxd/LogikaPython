@@ -1,7 +1,7 @@
 from Logika.Meters.TagDef import TagDef
 from Logika.Meters.Channel import Channel
-from Logika4 import Logika4
-from Logika6 import Logika6
+from Logika.Meters.Logika4 import Logika4
+from Logika.Meters.Logika6 import Logika6
 
 
 class Tag:
