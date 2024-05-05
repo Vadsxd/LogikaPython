@@ -9,6 +9,33 @@ from Logika.Meters.DataTag import DataTag
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import DataTagDef
 from Logika.Meters.Types import ImportantTag, TagKind
+from Logika.Meters.__4L.SPG741 import TSPG741
+from Logika.Meters.__4L.SPT941 import TSPT941
+from Logika.Meters.__4L.SPT941_10 import TSPT941_10
+from Logika.Meters.__4L.SPT942 import TSPT942
+from Logika.Meters.__4L.SPT943 import TSPT943
+from Logika.Meters.__4M.LGK410 import TLGK410
+from Logika.Meters.__4M.SPG740 import TSPG740
+from Logika.Meters.__4M.SPG742 import TSPG742
+from Logika.Meters.__4M.SPT940 import TSPT940
+from Logika.Meters.__4M.SPT941_20 import TSPT941_20
+from Logika.Meters.__4M.SPT943rev3 import TSPT943rev3
+from Logika.Meters.__4M.SPT944 import TSPT944
+from Logika.Meters.__6.SPE542 import TSPE542
+from Logika.Meters.__6.SPG761 import TSPG761
+from Logika.Meters.__6.SPG762 import TSPG762
+from Logika.Meters.__6.SPG763 import TSPG763
+from Logika.Meters.__6.SPT961 import TSPT961
+from Logika.Meters.__6.SPT961M import TSPT961M
+from Logika.Meters.__6N.SPE543 import TSPE543
+from Logika.Meters.__6N.SPG761_1 import TSPG761_1
+from Logika.Meters.__6N.SPG761_3 import TSPG761_3
+from Logika.Meters.__6N.SPG762_1 import TSPG762_1
+from Logika.Meters.__6N.SPG763_1 import TSPG763_1
+from Logika.Meters.__6N.SPT961_1 import TSPT961_1
+from Logika.Meters.__6N.SPT961_1M import TSPT961_1M
+from Logika.Meters.__6N.SPT962 import TSPT962
+from Logika.Meters.__6N.SPT963 import TSPT963
 from Logika.Utils.Conversions import Conversions
 
 
@@ -16,40 +43,6 @@ class CommonTagDef:
     def __init__(self, channel, key):
         self.channels = [channel]
         self.keys = [key]
-
-
-class Devices:
-    SPT941 = TSPT941()
-    SPG741 = TSPG741()
-    SPT942 = TSPT942()
-    SPT943 = TSPT943()
-    SPT941_10 = TSPT941_10()
-
-    SPG742 = TSPG742()
-    SPT941_20 = TSPT941_20()
-    SPT943rev3 = TSPT943rev3()
-    SPT944 = TSPT944()
-    LGK410 = TLGK410()
-    SPT940 = TSPT940()
-    SPG740 = TSPG740()
-
-    SPT961 = TSPT961()
-    SPG761 = TSPG761()
-    SPG762 = TSPG762()
-    SPG763 = TSPG763()
-    SPT961M = TSPT961M()
-    SPE542 = TSPE542()
-
-    SPT961_1 = TSPT961_1()
-    SPG761_1 = TSPG761_1()
-    SPG762_1 = TSPG762_1()
-    SPG763_1 = TSPG763_1()
-    SPT961_1M = TSPT961_1M()
-    SPT962 = TSPT962()
-    SPT963 = TSPT963()
-    SPE543 = TSPE543()
-
-    SPG761_3 = TSPG761_3()
 
 
 class MeterType(Enum):
@@ -93,6 +86,38 @@ class TagVault:
 
 
 class Meter(ABC):
+    SPT941 = TSPT941()
+    SPG741 = TSPG741()
+    SPT942 = TSPT942()
+    SPT943 = TSPT943()
+    SPT941_10 = TSPT941_10()
+
+    SPG742 = TSPG742()
+    SPT941_20 = TSPT941_20()
+    SPT943rev3 = TSPT943rev3()
+    SPT944 = TSPT944()
+    LGK410 = TLGK410()
+    SPT940 = TSPT940()
+    SPG740 = TSPG740()
+
+    SPT961 = TSPT961()
+    SPG761 = TSPG761()
+    SPG762 = TSPG762()
+    SPG763 = TSPG763()
+    SPT961M = TSPT961M()
+    SPE542 = TSPE542()
+
+    SPT961_1 = TSPT961_1()
+    SPG761_1 = TSPG761_1()
+    SPG762_1 = TSPG762_1()
+    SPG763_1 = TSPG763_1()
+    SPT961_1M = TSPT961_1M()
+    SPT962 = TSPT962()
+    SPT963 = TSPT963()
+    SPE543 = TSPE543()
+
+    SPG761_3 = TSPG761_3()
+
     meter_dict = {}
     df_temperature = "0.00"
 
@@ -367,7 +392,7 @@ class Meter(ABC):
                 self._archives = self.read_archive_defs(rows)
 
             # loading archive fields
-            afTableName = self.FamilyName() + "ArchiveFields"
+            afTableName = self.family_name() + "ArchiveFields"
             dtf = self.metadata.Tables.get(afTableName)
             if dtf is None:
                 dtf = self.load_res_table(afTableName)

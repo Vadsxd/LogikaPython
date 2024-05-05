@@ -6,15 +6,17 @@ from enum import Enum
 from typing import List
 
 from Logika.Connections.Connection import ConnectionState, ConnectionType, PurgeFlags
-from Logika.Connections.SerialConnection import StopBits, Parity
+from Logika.Connections.SerialConnection import StopBits, Parity, SerialConnection, BaudRate
 from Logika.ECommException import ECommException, CommError, ExcSeverity
 from Logika.Meters.Archive import IntervalArchive
 from Logika.Meters.DataTag import DataTag
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Meter import Meter
 from Logika.Meters.Types import BusProtocolType
+from Logika.Protocols.M4.ErrorCode import ErrorCode
 from Logika.Protocols.M4.M4Opcode import M4Opcode
 from Logika.Protocols.M4.M4Protocol import M4Protocol
+from Logika.Meters.__4L.Logika4L import Logika4L
 
 
 class ProtoEvent(Enum):
@@ -135,7 +137,7 @@ class Protocol(ABC):
         with self.waitMtx_:
             self.waitCond_.notify_all()
 
-    def detectX6(self, bus):
+    def detect_x6(self, bus):
         # req = SPBus.SPBusPacket.BuildReadTagsPacket(None, None, "", [0], [99])
         # reqBytes = req.AsByteArray()
         # bus.connection.Write(reqBytes, 0, len(reqBytes))
@@ -149,14 +151,14 @@ class Protocol(ABC):
         # return SPBusProtocol.MeterTypeFromResponse(p099, model)
         pass
 
-    def detectM4(self, bus):
+    def detect_m4(self, bus: M4Protocol):
         model = ""
-        reply = bus.Handshake(0xFF, 0, False)
+        reply = bus.handshake(0xFF, 0, False)
         dump = reply.getDump()
         mtr = Logika4.MeterTypeFromResponse(reply.Data[0], reply.Data[1], reply.Data[2])
 
         if mtr == Meter.SPT942:
-            # modelBytes = bus.ReadFlashBytes(mtr as Logika4L, 0xFF, 0x30, 1)
+            modelBytes = bus.read_flash_bytes(mtr as Logika4L, 0xFF, 0x30, 1)
             model = chr(modelBytes[0])
 
         return mtr
@@ -186,7 +188,7 @@ class Protocol(ABC):
 
                 if tryM4:
                     try:
-                        m = self.detectM4(bus4)
+                        m = self.detect_m4(bus4)
                         devBaudRate = detectedBaud
                         return m, dump, model
                     except Exception:
@@ -194,7 +196,7 @@ class Protocol(ABC):
 
                 if trySPBus:
                     try:
-                        m = self.detectX6(bus6)
+                        m = self.detect_x6(bus6)
                         devBaudRate = detectedBaud
                         return m, dump, model
                     except Exception:
@@ -206,7 +208,7 @@ class Protocol(ABC):
                     detectedBaud = bus6.MEKHandshake()
                     if detectedBaud > 0:
                         devBaudRate = detectedBaud
-                        return self.detectX6(bus6)
+                        return self.detect_x6(bus6)
                 except Exception:
                     pass
 
@@ -216,7 +218,6 @@ class Protocol(ABC):
         devBaudRate = 0
         dump = None
         return None, dump, model
-
 
     @staticmethod
     def detect_response(c):
@@ -228,71 +229,71 @@ class Protocol(ABC):
 
         try:
             while True:
-                c.readinto(buf, 1)
-                rxDetected = True
-                if buf[0] == 0x10:
-                    break
-
-                Elapsed = datetime.now() - ReadStart
-                if Elapsed.total_milliseconds() > c.read_timeout:
-                    raise ECommException(ExcSeverity.Error, CommError.Timeout)
-
-            c.readinto(buf, 1, 5)
-
-            if buf[2] == M4Opcode.Error and buf[3] == M4.ErrorCode.BadRequest and buf[5] == M4Protocol.FRAME_END:
-                goto
-                waitFrameStart
-
-            if buf[1] == 0x01 and buf[2] != M4Opcode.Handshake:
-                p = 6
-                iETX = -1
-
                 while True:
-                    c.readinto(buf, p, 1)
-                    p += 1
-                    if iETX == -1:
-                        iETX = SPBus.SPBusPacket.findMarker(buf, 2, p, 0x10, 0x03)
-                    if iETX < 0 or (iETX > 0 and p < iETX + 4):
+                    c.readinto(buf, 1)
+                    rxDetected = True
+                    if buf[0] == 0x10:
                         break
 
-                crc = 0
-                Protocol.crc16(crc, buf, 2, iETX + 2)
+                    Elapsed = datetime.now() - ReadStart
+                    if Elapsed.total_seconds() * 1000 > c.read_timeout:
+                        raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
-                if crc != 0:
-                    raise ECommException(ExcSeverity.Error, CommError.Checksum)
+                c.readinto(buf, 1, 5)
 
-                dump = buf[:iETX + 4]
-                pkt = SPBus.SPBusPacket.parse(buf, 0)
+                if buf[2] == M4Opcode.Error and buf[3] == ErrorCode.BadRequest and buf[5] == M4Protocol.FRAME_END:
+                    continue
 
-                if len(pkt.Records) != 2:
-                    raise ECommException(ExcSeverity.Error, CommError.Unspecified, "некорректная структура пакета")
+                if buf[1] == 0x01 and buf[2] != M4Opcode.Handshake:
+                    p = 6
+                    iETX = -1
 
-                p099 = pkt.Records[1].Fields[0]
-                return SPBusProtocol.MeterTypeFromResponse(p099, model)
+                    while True:
+                        c.readinto(buf, p, 1)
+                        p += 1
+                        if iETX == -1:
+                            iETX = SPBus.SPBusPacket.findMarker(buf, 2, p, 0x10, 0x03)
+                        if iETX < 0 or (iETX > 0 and p < iETX + 4):
+                            break
 
-            elif buf[2] == M4Opcode.Handshake:
-                c.readinto(buf, 6, 2)
-                cs = buf[6]
-                calculatedCheck = ~Logika4.Checksum8(buf, 1, 5) & 0xFF
+                    crc = 0
+                    Protocol.crc16(crc, buf, 2, iETX + 2)
 
-                if cs != calculatedCheck:
-                    raise ECommException(ExcSeverity.Error, CommError.Checksum)
+                    if crc != 0:
+                        raise ECommException(ExcSeverity.Error, CommError.Checksum)
 
-                m = Logika4.MeterTypeFromResponse(buf[3], buf[4], buf[5])
+                    dump = buf[:iETX + 4]
+                    pkt = SPBus.SPBusPacket.parse(buf, 0)
 
-                if m == Meter.SPT942:
-                    bus4 = M4Protocol()
-                    bus4.connection = c
-                    modelBytes = bus4.ReadFlashBytes(Logika4L(m), 0xFF, 0x30, 1)
-                    model = chr(modelBytes[0])
+                    if len(pkt.Records) != 2:
+                        raise ECommException(ExcSeverity.Error, CommError.Unspecified, "некорректная структура пакета")
+
+                    p099 = pkt.Records[1].Fields[0]
+                    return SPBusProtocol.MeterTypeFromResponse(p099, model)
+
+                elif buf[2] == M4Opcode.Handshake:
+                    c.readinto(buf, 6, 2)
+                    cs = buf[6]
+                    calculatedCheck = ~Logika4.Checksum8(buf, 1, 5) & 0xFF
+
+                    if cs != calculatedCheck:
+                        raise ECommException(ExcSeverity.Error, CommError.Checksum)
+
+                    m = Logika4.MeterTypeFromResponse(buf[3], buf[4], buf[5])
+
+                    if m == Meter.SPT942:
+                        bus4 = M4Protocol()
+                        bus4.connection = c
+                        modelBytes = bus4.read_flash_bytes(Logika4L(m), 0xFF, 0x30, 1)
+                        model = chr(modelBytes[0])
+                    else:
+                        model = ""
+
+                    dump = buf[:8]
+                    return m
+
                 else:
-                    model = ""
-
-                dump = buf[:8]
-                return m
-
-            else:
-                goto waitFrameStart
+                    continue
 
         except Exception as e:
             print(e)
@@ -312,13 +313,13 @@ class Protocol(ABC):
             conn.ReadTimeout = waitTimeout
 
             try:
-                baudRateList = [fixedBaudRate] if (fixedBaudRate > 0 and
-                                                   canChangeBaudrate) else [2400, 57600, 4800,
-                                                                            19200, 9600, 38400,
-                                                                            115200] if canChangeBaudrate else [0]
+                baudRateList = [fixedBaudRate] if (fixedBaudRate > 0 and canChangeBaudrate) \
+                    else [2400, 57600, 4800,
+                          19200, 9600, 38400,
+                          115200] if canChangeBaudrate else [0]
 
-                X6Request = SPBusProtocol.genRawHandshake(srcAddr, dstAddr)
-                M4Request = M4Protocol.genRawHandshake(dstAddr)
+                X6Request = SPBusProtocol.gen_raw_handshake(srcAddr, dstAddr)
+                M4Request = M4Protocol.gen_raw_handshake(dstAddr)
 
                 for baudRate in baudRateList:
                     if canChangeBaudrate:

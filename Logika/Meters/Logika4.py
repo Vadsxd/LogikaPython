@@ -110,6 +110,19 @@ class Logika4(ABC, Meter):
         else:
             raise Exception("Unsupported archive")
 
+    def ident_match(self, id0, id1, ver):
+        dev_id = (id0 << 8) | id1
+        return dev_id == self.ident_word
+
+    @staticmethod
+    def meter_type_from_response(id0, id1, ver):
+        m4devs = [x for x in Meter.supported_meters() if isinstance(x, Logika4)]
+        for dev in m4devs:
+            if dev.ident_match(id0, id1, ver):
+                return dev
+
+        raise Exception(f"неподдерживаемый прибор {id0:X2} {id1:X2} {ver:X2}")
+
     @staticmethod
     def get_gas_pressure_units(euParamValue: int) -> str:
         units = {

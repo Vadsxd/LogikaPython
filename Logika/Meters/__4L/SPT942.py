@@ -125,7 +125,7 @@ class TSPT942(Logika4L):
         bothTVs = False
         if model in ["1", "2", "3", "5"]:
             bothTVs = True
-        elif model in ["4", "6"]:
+        elif model in ["4", "__6"]:
             bothTVs = False
         else:
             raise ArgumentError(None, "неподдерживаемая модель СПТ942: '" + str(model) + "'")
@@ -153,7 +153,7 @@ class TSPT942(Logika4L):
         m46tv2 = next((x for x in self.Channels if x.Start == 1 and x.Count == 1), None)
 
         if m46tv2 is None:
-            m46tv2 = ChannelDef(self, ah.ChannelDef.Prefix, 2, 1, "канал ТВ2 в одноканальных СПТ942 (мод. 4/6)")
+            m46tv2 = ChannelDef(self, ah.ChannelDef.Prefix, 2, 1, "канал ТВ2 в одноканальных СПТ942 (мод. 4/__6)")
             lc = list(self.Channels)
             lc.append(m46tv2)
             self.Channels = lc

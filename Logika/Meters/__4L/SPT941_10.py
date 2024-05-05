@@ -36,7 +36,7 @@ class TSPT941_10(Logika4L):
         return 0x9229
 
     def ident_match(self, id0, id1, ver):
-        return super().IdentMatch(id0, id1, ver) and ver < 0x80
+        return super().ident_match(id0, id1, ver) and ver < 0x80
 
     @staticmethod
     def get_common_tag_defs():
