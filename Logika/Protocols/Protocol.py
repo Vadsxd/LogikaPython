@@ -180,8 +180,7 @@ class Protocol(ABC):
 
             for baudRate in baudRateList:
                 if canChangeBaudrate:
-                    conn.SetParams(baudRate, 8, StopBits.One, Parity.
-                    None)
+                    conn.SetParams(baudRate, 8, StopBits.One, Parity.Zero)
                     detectedBaud = baudRate
                     print(f"trying {detectedBaud} bps...")
 
@@ -218,7 +217,9 @@ class Protocol(ABC):
         dump = None
         return None, dump, model
 
-    def detectResponse(self, c):
+
+    @staticmethod
+    def detect_response(c):
         rxDetected = False
         dump = None
         model = None
@@ -255,7 +256,7 @@ class Protocol(ABC):
                         break
 
                 crc = 0
-                Protocol.CRC16(crc, buf, 2, iETX + 2)
+                Protocol.crc16(crc, buf, 2, iETX + 2)
 
                 if crc != 0:
                     raise ECommException(ExcSeverity.Error, CommError.Checksum)
@@ -299,7 +300,7 @@ class Protocol(ABC):
         return None
 
     @staticmethod
-    def AutodetectSPT(conn, fixedBaudRate, waitTimeout, tryM4, trySPBus, tryMEK, srcAddr, dstAddr):
+    def autodetect_spt(conn, fixedBaudRate, waitTimeout, tryM4, trySPBus, tryMEK, srcAddr, dstAddr):
         m = None
         model = ""
 
@@ -341,7 +342,7 @@ class Protocol(ABC):
                             conn.Write(M4Request, 0, len(M4Request))
 
                         time.sleep(0.05)
-                        m = detectResponse(conn)
+                        m = Protocol.detect_response(conn)
 
                         if m is not None:
                             return m
@@ -375,7 +376,7 @@ class Protocol(ABC):
             return None
 
     @staticmethod
-    def GetDefaultTimeout(proto, connType):
+    def get_default_timeout(proto, connType):
         if connType == ConnectionType.Offline or connType == ConnectionType.Serial:
             if proto == BusProtocolType.SPbus:
                 return 15000
@@ -396,7 +397,7 @@ class Protocol(ABC):
             return 15000  # Default case
 
     @staticmethod
-    def CRC16(crc, buf, offset, length):
+    def crc16(crc, buf, offset, length):
         while length > 0:
             crc ^= (buf[offset] << 8) & 0xFFFF
             for j in range(8):
