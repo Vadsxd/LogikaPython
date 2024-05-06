@@ -85,10 +85,10 @@ class ArchiveFieldCollection:
 
 
 class ServiceRecord:
-    def __init__(self):
-        self.tm = None
-        self.event = ""
-        self.description = ""
+    def __init__(self, tm, event, description):
+        self.tm = tm
+        self.event = event
+        self.description = description
 
     def __str__(self):
         return "{0} {1} {2}".format(self.tm, self.event, self.description)

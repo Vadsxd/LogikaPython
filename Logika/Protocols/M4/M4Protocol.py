@@ -658,7 +658,7 @@ class M4Protocol(Protocol):
                 break
 
             r = M4ArchiveRecord()
-            r.intervalMark = datetime(oTime, tzinfo=datetime.timezone.utc)
+            r.interval_mark = datetime(oTime, tzinfo=datetime.timezone.utc)
 
             if decompData[tp] == 0x30:
                 tp += 1 + lenLen[0]
@@ -684,7 +684,7 @@ class M4Protocol(Protocol):
             else:
                 o = None
                 tp += Logika4M.ParseTag(decompData, tp, o)
-                r.dt = r.intervalMark
+                r.dt = r.interval_mark
                 r.values = [o]
 
             lr.append(r)

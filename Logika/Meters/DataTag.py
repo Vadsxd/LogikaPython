@@ -13,12 +13,13 @@ class DataTag(Tag):
             td = refTag
             self.addr = (td.ChannelDef.Prefix + str(channelNo) + "_" if channelNo > 0 else "") + td.name
 
-    def __init__(self, t):
+    def __init__(self, t: Tag):
         super().__init__(t)
         self.Value = t.Value
         self.EU = t.EU
         self.Oper = t.Oper
         self.addr = t.addr
+        self.Name = t.name
 
     @property
     def Index(self):

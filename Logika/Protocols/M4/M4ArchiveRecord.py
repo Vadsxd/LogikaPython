@@ -1,6 +1,6 @@
 class M4ArchiveRecord:
     def __init__(self):
-        self.intervalMark = None  # метка интервала (время без РД РЧ)
+        self.interval_mark = None  # метка интервала (время без РД РЧ)
         self.dt = None  # метка времени записи (полная, с РД/РЧ)
         self.values = []
 
