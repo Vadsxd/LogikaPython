@@ -33,7 +33,7 @@ class Logika4MArchiveRequestState:
 
 
 class MeterInstance:
-    def __init__(self, owner, m: Logika4, nt):
+    def __init__(self, owner: M4, m: Logika4, nt):
         self.timeDiff = None
         self.eus = None
         self.proto = owner
@@ -52,7 +52,7 @@ class MeterInstance:
     def model(self):
         if self.model is None:
             if ImportantTag.Model in self.vipTags:
-                self.proto.updateTags(self.nt, self.vipTags[ImportantTag.Model], updTagsFlags.DontGetEUs)
+                self.proto.update_tags(self.nt, self.vipTags[ImportantTag.Model], updTagsFlags.DontGetEUs)
                 self.model = str(self.vipTags[ImportantTag.Model][0].Value)
             else:
                 self.model = ""
@@ -129,7 +129,7 @@ class M4Protocol:
     def update_tags(self, src, dst, tags):
         if len(tags) == 0:
             return
-        self.update_tags(self, dst, tags, updTagsFlags.Zero)
+        self.update_tags(dst, tags, updTagsFlags.Zero)
 
     def get_flash_pages_to_cache(self, mtr, nt, startPageNo, count, mi):
         if count <= 0 or startPageNo < 0:

@@ -28,7 +28,7 @@ class Parity(Enum):
 
 
 class SerialConnection(ABC, Connection):
-    def __init__(self, read_timeout, port_name):
+    def __init__(self, read_timeout: int, port_name: str):
         super().__init__(port_name, read_timeout)
 
     @property

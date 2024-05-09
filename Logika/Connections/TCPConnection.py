@@ -9,7 +9,7 @@ from Logika.ECommException import ECommException, ExcSeverity, CommError
 
 
 class TCPConnection(NetConnection):
-    def __init__(self, read_timeout, host, port):
+    def __init__(self, read_timeout: int, host: str, port: int):
         super().__init__(read_timeout, host, port)
         self.socket = None
         self.WSAETIMEDOUT = 10060

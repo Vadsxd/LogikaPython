@@ -182,7 +182,7 @@ class Protocol(ABC):
 
             for baudRate in baudRateList:
                 if canChangeBaudrate:
-                    conn.SetParams(baudRate, 8, StopBits.One, Parity.Zero)
+                    conn.set_params(baudRate, 8, StopBits.One, Parity.Zero)
                     detectedBaud = baudRate
                     print(f"trying {detectedBaud} bps...")
 

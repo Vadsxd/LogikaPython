@@ -205,10 +205,10 @@ class Connection(ABC):
             self.state = ConnectionState.NotConnected
 
     @abstractmethod
-    def internal_purge_comms(self, what):
+    def internal_purge_comms(self, what: PurgeFlags):
         pass
 
-    def purge_comms(self, what):
+    def purge_comms(self, what: PurgeFlags):
         if self.state == ConnectionState.Connected:
             self.internal_purge_comms(what)
             sp = "# purge "
@@ -219,7 +219,7 @@ class Connection(ABC):
 
             # self.Mon(MonitorEventType.Purge, None, sp)
 
-    def read_available(self, buf, start, maxLength):
+    def read_available(self, buf: List[bytes], start: int, maxLength: int) -> int:
         self.check_if_connected()
         try:
             nRead = self.internal_read(buf, start, maxLength)
@@ -235,14 +235,14 @@ class Connection(ABC):
 
         return nRead
 
-    def read(self, buf, start, length):
+    def read(self, buf: List[bytes], start: int, length: int):
         nRead = 0
 
         while nRead < length:
             self.check_if_closing()
             nRead += self.read_available(buf, start + nRead, length - nRead)
 
-    def write(self, buf, start, nBytes):
+    def write(self, buf: List[bytes], start: int, nBytes: int):
         self.check_if_connected()
         self.check_if_closing()
         try:
@@ -255,7 +255,7 @@ class Connection(ABC):
             # self.Mon(MonitorEventType.Error, None, f"! {type(e).__name__} : {e}")
             raise
 
-    def state_change_delegate(self, new_state):
+    def state_change_delegate(self, new_state: ConnectionState):
         if self.on_connection_state_change is not None:
             self.on_connection_state_change(new_state)
 
@@ -285,13 +285,13 @@ class Connection(ABC):
     def is_conflicting_with(self, target):
         pass
 
-    def conflicts_with(self, target):
+    def conflicts_with(self, target) -> bool:
         if self.state == ConnectionState.NotConnected or not isinstance(target, type(self)):
             return False
         return self.is_conflicting_with(target)
 
     @property
-    def last_rx_time(self):
+    def last_rx_time(self) -> datetime:
         return self.m_last_rx_time
 
     def reset_statistics(self):
