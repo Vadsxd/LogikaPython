@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Optional
 
+from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.ArchiveDef import ArchiveDef
 from Logika.Meters.Channel import ChannelKind, ChannelDef
 from Logika.Meters.DataTag import DataTag
@@ -119,12 +120,12 @@ class Meter(ABC):
     SPG761_3 = TSPG761_3()
 
     meter_dict = {}
-    df_temperature = "0.00"
+    df_temperature: str = "0.00"
 
-    _archives = None
+    _archives: List[ArchiveDef] = None
     _channels = None
-    ref_archive_fields = None
-    _tagVault = None
+    ref_archive_fields: List[ArchiveFieldDef] = None
+    _tagVault: TagVault = None
     _rr = []
 
     tagsLock = object()
@@ -165,7 +166,7 @@ class Meter(ABC):
         return super().__hash__()
 
     @staticmethod
-    def get_defined_meter_types(cls):
+    def get_defined_meter_types(cls: type):
         if not issubclass(cls, Meter):
             raise Exception("wrong type")
         lm = [getattr(cls, attr) for attr in dir(cls) if isinstance(getattr(cls, attr), Meter)]
@@ -229,6 +230,7 @@ class Meter(ABC):
         for key, value in tdefs.items():
             dta = self.lookup_common_tags(value)
             wtd[key] = dta
+
         return wtd
 
     def lookup_common_tags(self, tlist: object) -> List[DataTag]:

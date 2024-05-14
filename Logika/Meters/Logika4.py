@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Dict
 
 from Logika.Meters.Channel import ChannelKind
 from Logika.Meters.Meter import Meter
@@ -30,6 +30,7 @@ class Logika4(ABC, Meter):
 
         if ns_number > len(self.nsDescs) - 1:
             return ""
+
         return self.nsDescs[ns_number]
 
     @staticmethod
@@ -61,6 +62,7 @@ class Logika4(ABC, Meter):
                 ns_string = ns_string[si + 1: -2]
             ns_no = int(ns_string)
             evt_desc = self.get_ns_description(ns_no)
+
         return evt_desc
 
     @abstractmethod
@@ -110,7 +112,7 @@ class Logika4(ABC, Meter):
         else:
             raise Exception("Unsupported archive")
 
-    def ident_match(self, id0, id1, ver):
+    def ident_match(self, id0, id1, ver) -> bool:
         dev_id = (id0 << 8) | id1
         return dev_id == self.ident_word
 
@@ -131,26 +133,30 @@ class Logika4(ABC, Meter):
             2: "кгс/см²",
             3: "кгс/м²"
         }
+
         return units.get(euParamValue, "кПа")
 
     @staticmethod
     def bit_numbers(val: int, nBits: int, nOffset: int) -> List[int]:
         bitNumbers = [ib + nOffset for ib in range(nBits) if val & (1 << ib)]
+
         return bitNumbers
 
     @staticmethod
     def bit_numbers_from_array(array: List[int], offset: int, nBits: int) -> List[int]:
         bitNumbers = [i for i in range(nBits) if array[offset + i // 8] & (1 << i % 8)]
+
         return bitNumbers
 
     @staticmethod
     def combine_date_time(dateTag: str, timeTag: str) -> datetime:
         dt = [int(x) for x in dateTag.split('.')]
         tt = [int(x) for x in timeTag.split(':')]
+
         return datetime(2000 + dt[2], dt[1], dt[0], tt[0], tt[1], tt[2])
 
     @staticmethod
-    def get_nt_from_tag(tag_value):
+    def get_nt_from_tag(tag_value: str):
         nt = None
         try:
             nt = int(tag_value)
@@ -159,7 +165,7 @@ class Logika4(ABC, Meter):
         return nt
 
     @staticmethod
-    def checksum8(buf, start, length):
+    def checksum8(buf: bytes, start: int, length: int):
         a = 0xFF
         for i in range(length):
             a -= buf[start + i]
@@ -167,14 +173,14 @@ class Logika4(ABC, Meter):
         return a
 
     @staticmethod
-    def get_channel_kind(channel_start: int):
+    def get_channel_kind(channel_start: int) -> ChannelKind:
         if channel_start == 0:
-            return ChannelKind.Common.name
+            return ChannelKind.Common
         else:
-            return ChannelKind.TV.name
+            return ChannelKind.TV
 
     @staticmethod
-    def get_eu(eu_dict, eu_def):
+    def get_eu(eu_dict: Dict[str, str], eu_def: str) -> str:
         if eu_dict is not None and eu_def in eu_dict:
             return eu_dict[eu_def]
         else:

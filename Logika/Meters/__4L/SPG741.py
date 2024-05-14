@@ -1,5 +1,7 @@
 from datetime import timedelta
+from typing import List, Dict
 
+from Logika.Meters.DataTag import DataTag
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Types import MeasureKind, ImportantTag
 from Logika4L import Logika4L, ADSFlashRun
@@ -106,7 +108,7 @@ class TSPG741(Logika4L):
     def supports_fast_session_init(self) -> bool:
         return False
 
-    def get_mapped_db_param_addr(self, paramName, sp):
+    def get_mapped_db_param_addr(self, paramName: str, sp) -> int:
         DB_FLASH_START = 0x200
         PARAM_SIZE = 16
 
@@ -117,23 +119,30 @@ class TSPG741(Logika4L):
 
         return addr
 
-    def get_mapped_db_param_ordinal(self, paramName, sp):
+    def get_mapped_db_param_ordinal(self, paramName: str, sp) -> int | None:
         pn = paramName.split('/')
+
         if len(pn) != 2:
             raise Exception("недопустимое имя параметра СПГ741: {}".format(paramName))
+
         sp_map = self.sp_param_map[sp]
         sensIdx = sp_map.index(pn[1])
+
         if sensIdx < 0:
             return None
+
         varIdx = self.GetMappedDBParamOrdinalsensorVars.index(pn[0])
+
         if varIdx < 0:
             return None
+
         MAPPED_PARAMS_START_NO = 100
         PARAMS_PER_SENSOR = 11
+
         return MAPPED_PARAMS_START_NO + sensIdx * PARAMS_PER_SENSOR + varIdx
 
     @staticmethod
-    def build_eu_dict(euTags):
+    def build_eu_dict(euTags: List[DataTag]) -> Dict[str, str]:
         eus = {}
         if len(euTags) != 8:
             raise Exception("incorrect EU tags supplied")
@@ -145,7 +154,7 @@ class TSPG741(Logika4L):
         return eus
 
     @staticmethod
-    def get_ads_file_layout(self, everyone, model):
+    def get_ads_file_layout(self, everyone: bool, model: str):
         if everyone:
             return [ADSFlashRun(0x00000, 0x17C80)]
         else:

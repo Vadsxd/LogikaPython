@@ -274,6 +274,7 @@ class Logika4L(ABC, Logika4):
         chOfs = r["ChannelOffset"] if r["ChannelOffset"] is not None else None
         addonAddr = r["Addon"] if r["Addon"] is not None else None
         addonChOfs = r["AddonOffset"] if r["AddonOffset"] is not None else None
+
         return TagDef4L(ch, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, dbType, units,
                         displayFormat, descriptionEx, ranging, nativeType, inRam, addr, chOfs, addonAddr, addonChOfs)
 

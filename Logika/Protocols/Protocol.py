@@ -155,7 +155,7 @@ class Protocol(ABC):
         model = ""
         reply = bus.handshake(0xFF, 0, False)
         dump = reply.getDump()
-        mtr = Logika4.MeterTypeFromResponse(reply.Data[0], reply.Data[1], reply.Data[2])
+        mtr = Logika4.meter_type_from_response(reply.Data[0], reply.Data[1], reply.Data[2])
 
         if mtr == Meter.SPT942:
             modelBytes = bus.read_flash_bytes(mtr as Logika4L, 0xFF, 0x30, 1)
