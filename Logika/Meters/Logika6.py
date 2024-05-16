@@ -99,7 +99,6 @@ class Logika6(ABC, Meter):
 
         if fi is None:
             raise Exception(fname + " not found for " + type(self).__name__)
-
         return fi
 
     def get_mdb_map_all(self):
@@ -131,7 +130,6 @@ class Logika6(ABC, Meter):
         channel_type = "0"
         channel_no = 0
         caption = composite_name
-
         return caption, channel_type, channel_no
 
     @staticmethod
@@ -152,7 +150,7 @@ class Logika6(ABC, Meter):
         return datetime(year, int(df[1]), int(df[0]), int(tf[0]), int(tf[1]), int(tf[2]))
 
     @staticmethod
-    def get_channel_kind(ordinal: int, channel_start: int = None, channel_count: int = None, channel_name: str = None):
+    def get_channel_kind(ordinal, channel_start=None, channel_count=None, channel_name=None):
         if ordinal is None:
             if channel_start == 0 and channel_count == 1:
                 return "Common"

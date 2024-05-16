@@ -475,7 +475,7 @@ class M4Protocol(Protocol):
         buf[HDR_LEN + len(data)] = check >> 8
         buf[HDR_LEN + len(data) + 1] = check & 0xFF
 
-        self.connection.Write(buf, 0, len(buf))
+        self.connection.write(buf, 0, len(buf))
         self.report_proto_event(ProtoEvent.packetTransmitted)
 
     def read_tags_m4(self, m, nt, channels, ordinals):

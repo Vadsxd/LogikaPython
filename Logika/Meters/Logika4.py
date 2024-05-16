@@ -37,6 +37,7 @@ class Logika4(ABC, Meter):
     def display_ns(value):
         separator = ","
         sb = []
+
         if value is None:
             return ""
         elif isinstance(value, bytes):
