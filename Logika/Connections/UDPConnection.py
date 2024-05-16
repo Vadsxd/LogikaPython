@@ -2,7 +2,7 @@ import socket
 
 import select
 
-from Logika.Connections.Connection import PurgeFlags
+from Logika.Connections.Connection import PurgeFlags, Connection
 from Logika.Connections.NetConnection import NetConnection
 from Logika.ECommException import ECommException, ExcSeverity, CommError
 from Logika.Utils.ByteQueue import ByteQueue
@@ -11,9 +11,9 @@ from Logika.Utils.ByteQueue import ByteQueue
 class UDPConnection(NetConnection):
     def __init__(self, read_timeout, host, port):
         super().__init__(read_timeout, host, port)
-        self.uc = None
-        self.inQue = ByteQueue(65535)
-        self.ipEndpoint = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.uc: socket = None
+        self.inQue: ByteQueue = ByteQueue(65535)
+        self.ipEndpoint: socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def dispose(self, disposing: bool):
         if disposing:
@@ -21,11 +21,11 @@ class UDPConnection(NetConnection):
                 self.uc.close()
                 self.uc = None
 
-    def is_conflicting_with(self, target):
+    def is_conflicting_with(self, target: Connection) -> bool:
         if not isinstance(target, UDPConnection):
             return False
         tar_con = target
-        return tar_con.host == self.host and tar_con.port == self.port
+        return tar_con.host == self.m_srv_host_name and tar_con.port == self.m_srv_port
 
     def internal_write(self, buf: bytes, start: int, length: int):
         self.uc.send(buf[start:start + length])
@@ -51,7 +51,7 @@ class UDPConnection(NetConnection):
                 raise ECommException(ExcSeverity.Stop, CommError.SystemError, se.strerror)
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, se.strerror)
 
-    def internal_read(self, buf: bytes, start: int, max_length: int):
+    def internal_read(self, buf: bytes, start: int, max_length: int) -> int:
         ptr = start
 
         n_read = self.inQue.dequeue(buf, start, max_length)

@@ -11,9 +11,9 @@ from Logika.ECommException import ECommException, ExcSeverity, CommError
 class TCPConnection(NetConnection):
     def __init__(self, read_timeout: int, host: str, port: int):
         super().__init__(read_timeout, host, port)
-        self.socket = None
-        self.WSAETIMEDOUT = 10060
-        self.connect_ended = threading.Event()
+        self.socket: socket = None
+        self.WSAETIMEDOUT: int = 10060
+        self.connect_ended: threading = threading.Event()
         self.connect_exception = None
 
     def dispose(self, disposing: bool):
@@ -44,7 +44,7 @@ class TCPConnection(NetConnection):
                     raise self.connect_exception
 
         except socket.error as se:
-            if se.errno == socket.errno.ENOENT:
+            if se.errno == 11001:
                 raise ECommException(ExcSeverity.Stop, CommError.SystemError, se.strerror)
 
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, se.strerror)
@@ -74,29 +74,38 @@ class TCPConnection(NetConnection):
         TarCon = target
         return TarCon.mSrvHostName == self.mSrvHostName and TarCon.mSrvPort == self.mSrvPort
 
-    def internal_read(self, buf, Start, MaxLength):
+    def internal_read(self, buf: bytes, start: int, max_length: int):
+        errcode = 0
+        nBytes: int = 0
+
         if not self.socket.poll(self.ReadTimeout * 1000):
             raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
         if self.State != ConnectionState.Connected or self.socket is None:
             return 0
 
-        errcode = SocketError()
-        avBytes = self.socket.Available
-        nBytes, errcode = self.socket.Receive(buf, Start, MaxLength, SocketFlags.None)
+        try:
+            nBytes = self.socket.recv_into(buf, start, max_length)
+        except socket.error as e:
+            errcode = e.errno
+            print(f"Error receiving data: {e}")
+
         if nBytes == 0:
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, "соединение завершено удаленной стороной")
 
-        if errcode != SocketError.Success:
-            raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.ToString())
+        if errcode != 0:
+            raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.__str__())
 
         return nBytes
 
-    def internal_write(self, buf: bytes, Start: int, length: int):
-        errcode = SocketError()
-        _, errcode = self.socket.Send(buf, Start, length, SocketFlags.None)
-        if errcode != SocketError.Success:
-            raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.ToString())
+    def internal_write(self, buf: bytes, start: int, length: int):
+        try:
+            sent_bytes = self.socket.send(buf[start:start + length])
+            if sent_bytes != length:
+                raise Exception("Failed to send all bytes")
+        except socket.error as e:
+            errcode = e.errno
+            raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.__str__())
 
     def internal_purge_comms(self, flg: PurgeFlags):
         if self.State != ConnectionState.Connected:
@@ -104,11 +113,11 @@ class TCPConnection(NetConnection):
 
         if flg & PurgeFlags.RX:
             while True:
-                nBytes = self.socket.Available
+                nBytes = self.socket.recv(1024)
                 if nBytes == 0:
                     break
                 mem = bytearray(nBytes)
-                self.socket.Receive(mem)
+                self.socket.recv_into(mem)
 
         if flg & PurgeFlags.TX:
             pass  # no methods for aborting tcp tx

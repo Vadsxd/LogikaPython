@@ -11,25 +11,25 @@ class SerialPortConnection(SerialConnection):
         br = 2400 if baudRate == BaudRate.Undefined else baudRate.value
         sb = serial.STOPBITS_ONE if stopBits == StopBits.One else serial.STOPBITS_TWO
         self.port = serial.Serial(port=portName, baudrate=br, parity=serial.PARITY_NONE, bytesize=8, stopbits=sb)
-        self.port.timeout = readTimeout
+        self.port.readTimeout = readTimeout
 
     @property
-    def resource_name(self):
+    def resource_name(self) -> str | None:
         return self.port.port
 
     def on_set_read_timeout(self, newTimeout: int):
-        self.port.timeout = newTimeout
+        self.port.readTimeout = newTimeout
 
     def internal_open(self, connectionDetails: str):
         connectionDetails = None
         self.port.open()
         self.port.dtr = True
-        self.port.timeout = self.readTimeout
+        self.port.readTimeout = self.read_timeout
 
     def internal_close(self):
         self.port.close()
 
-    def internal_read(self, buf, start: int, maxLength: int):
+    def internal_read(self, buf: bytes, start: int, maxLength: int) -> bytes:
         try:
             return self.port.read(buf[start:start + maxLength])
         except serial.SerialTimeoutException:
@@ -37,7 +37,7 @@ class SerialPortConnection(SerialConnection):
         except Exception as e:
             raise e
 
-    def internal_write(self, buf, start: int, nBytes: int):
+    def internal_write(self, buf: bytes, start: int, nBytes: int):
         self.port.write(buf[start:start + nBytes])
 
     def internal_purge_comms(self, what: PurgeFlags):
@@ -55,14 +55,14 @@ class SerialPortConnection(SerialConnection):
             self.port.stopbits = serial.STOPBITS_TWO
 
     @property
-    def baud_rate(self):
+    def baud_rate(self) -> BaudRate:
         return BaudRate(self.port.baudrate)
 
     @baud_rate.setter
     def baud_rate(self, value):
         self.port.baudrate = value.value
 
-    def is_conflicting_with(self, target: Connection):
+    def is_conflicting_with(self, target: Connection) -> bool:
         if isinstance(target, SerialPortConnection):
             if target.port.port != self.port.port:
                 return False
@@ -71,7 +71,7 @@ class SerialPortConnection(SerialConnection):
         else:
             return False
 
-    def set_params(self, baudRate, dataBits, stopBits, parity):
+    def set_params(self, baudRate: BaudRate, dataBits: int, stopBits: StopBits, parity: Parity):
         self.port.baudrate = baudRate.value
         self.port.bytesize = dataBits
         self.set_stop_bits(stopBits)

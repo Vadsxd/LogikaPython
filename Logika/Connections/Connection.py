@@ -84,19 +84,19 @@ class EventHandler:
 class Connection(ABC):
     def __init__(self, address: str, read_timeout: int):
         self.on_connection_state_change = None
-        self.m_last_rx_time = datetime.min
+        self.m_last_rx_time: datetime = datetime.min
         self.m_read_timeout = None
         self.m_state = None
-        self.tx_byte_cnt = None
-        self.rx_byte_cnt = None
+        self.tx_byte_cnt: int = 0
+        self.rx_byte_cnt: int = 0
         self.on_log_event = None
-        self.address = address
-        self.closing_event = ManualResetEvent()
-        self.read_timeout = read_timeout
-        self.state = ConnectionState.NotConnected
-        self.on_before_disconnect = EventHandler()
-        self.on_after_connect = EventHandler()
-        self.on_connect_required = EventHandler()
+        self.address: str = address
+        self.closing_event: ManualResetEvent = ManualResetEvent()
+        self.read_timeout: int = read_timeout
+        self.state: ConnectionState = ConnectionState.NotConnected
+        self.on_before_disconnect: EventHandler = EventHandler()
+        self.on_after_connect: EventHandler = EventHandler()
+        self.on_connect_required: EventHandler = EventHandler()
 
     @abstractmethod
     def dispose(self, disposing: bool):
