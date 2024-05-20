@@ -9,6 +9,7 @@ from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import TagDef4L
 from Logika.Meters.Types import ArchiveType
+from Logika.Meters.Meter import Meter
 
 
 class BinaryType(Enum):
@@ -261,8 +262,7 @@ class Logika4L(ABC, Logika4):
         pass
 
     def read_tag_def(self, r):
-        self.readCommonDef(r)
-        chKey = r["Channel"]
+        chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging = Meter.read_common_def(r)
         ch = next((x for x in self.Channels if x.Prefix == chKey), None)
         dbType = r["dbType"] if r["dbType"] is not None else None
         units = str(r["Units"])

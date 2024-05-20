@@ -2,6 +2,7 @@ import threading
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Optional
+import sqlite3
 
 from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.ArchiveDef import ArchiveDef
@@ -130,7 +131,7 @@ class Meter(ABC):
 
     tagsLock = object()
     channelsTable = None
-    metadata = DataSet("metadata")
+    metadata = sqlite3.connect('Logika_database.db')
 
     @property
     @abstractmethod
@@ -304,12 +305,12 @@ class Meter(ABC):
     def family_name(self) -> str:
         pass
 
-    @property
-    def res_reader(self):
-        if self._rr is None:
-            mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("Logika.Tags.resources")
-            self._rr = ResourceReader(mrs)
-        return self._rr
+    # @property
+    # def res_reader(self):
+    #     if self._rr is None:
+    #         mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("Logika.Tags.resources")
+    #         self._rr = ResourceReader(mrs)
+    #     return self._rr
 
     @staticmethod
     def read_common_def(r):
@@ -318,8 +319,7 @@ class Meter(ABC):
         ordinal = int(r["Ordinal"])
         desc = str(r["Description"])
 
-        kind = TagKind.Undefined
-        Enum.TryParse(TagKind, str(r["Kind"]), kind)
+        kind = str(r["Kind"])
 
         isBasicParam = bool(r["Basic"])
         updRate = int(r["UpdateRate"])
@@ -329,9 +329,11 @@ class Meter(ABC):
         if sDataType:
             dataType = type("System." + sDataType, True)
 
-        stv = StdVar.unknown if r["VarT"] is None else Enum.Parse(StdVar, r["VarT"].ToString())
-        descEx = str(r["DescriptionEx"])
-        range = str(r["Range"])
+        stv = StdVar.unknown if r["VarT"] is None else str(r["VarT"])
+        descriptionEx = str(r["DescriptionEx"])
+        ranging = str(r["Range"])
+
+        return chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging
 
     @abstractmethod
     def read_tag_def(self, r):
@@ -353,7 +355,7 @@ class Meter(ABC):
         self.metadata.Tables.Clear()
 
     def load_metadata(self):
-        devName = self.__class__.__name[1:]  # TSPTxxx -> SPTxxx
+        devName = self.__class__.__name__[1:]  # TSPTxxx -> SPTxxx
 
         with Meter.tagsLock:
             # loading channels
@@ -366,7 +368,7 @@ class Meter(ABC):
                 for row in cr:
                     st = int(row["Start"])
                     ct = int(row["Count"])
-                    lc.append(ChannelDef(self, row["Key"].ToString(), st, ct, row["Description"].ToString()))
+                    lc.append(ChannelDef(self, str(row["Key"]), st, ct, (row["Description"])))
                 self._channels = lc
 
             # loading tags
@@ -389,7 +391,7 @@ class Meter(ABC):
                 dta = self.load_res_table(arTableName)
 
             if self._archives is None:
-                aclassName = self.__class__.__name
+                aclassName = self.__class__.__name__
                 rows = dta.Select("Device='" + devName + "'", "Device, ArchiveType")
                 self._archives = self.read_archive_defs(rows)
 
@@ -400,7 +402,7 @@ class Meter(ABC):
                 dtf = self.load_res_table(afTableName)
 
             if self.ref_archive_fields is None:
-                aclassName = self.__class__.__name
+                aclassName = self.__class__.__name__
                 rows = dtf.Select("Device='" + devName + "'", self.archive_fields_sort)
                 lf = []
                 for r in rows:
@@ -413,19 +415,9 @@ class Meter(ABC):
         pass
 
     @staticmethod
-    def load_res_table(tableName: str) -> DataTable:
-        RES_OFFSET = 4
-
-        dt = None
-        resType = None
-        resData = None
-
-        resReader.GetResourceData(tableName, resType, resData)
-        dt = Deserializer.DeserializeDataTable(resData, RES_OFFSET, Encoding.Unicode)
-        dt.TableName = tableName
-        metadata.Tables.Add(dt)
-
-        return dt
+    def load_res_table(tableName: str):
+        # TODO: получить получить таблицу
+        pass
 
     @property
     def tags(self) -> TagVault:
