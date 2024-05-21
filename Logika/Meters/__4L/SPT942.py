@@ -154,9 +154,9 @@ class TSPT942(Logika4L):
 
         if m46tv2 is None:
             m46tv2 = ChannelDef(self, ah.ChannelDef.Prefix, 2, 1, "канал ТВ2 в одноканальных СПТ942 (мод. 4/__6)")
-            lc = list(self.Channels)
+            lc = list(self.channels)
             lc.append(m46tv2)
-            self.Channels = lc
+            self.channels = lc
 
         la.append(
             ArchiveDef4L(m46tv2, ArchiveType.Hour, ah.ElementType, ah.Capacity, ah.Name, ah.Description, ah.RecordSize,

@@ -34,7 +34,7 @@ class Logika4(ABC, Meter):
         return self.nsDescs[ns_number]
 
     @staticmethod
-    def display_ns(value):
+    def display_ns(value) -> str:
         separator = ","
         sb = []
 

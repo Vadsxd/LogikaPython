@@ -21,11 +21,11 @@ class Logika6(ABC, Meter):
 
     @property
     def tags_sort(self) -> str:
-        return "Device, Ordinal, Index"
+        return "device, ordinal, index"
 
     @property
     def archive_fields_sort(self) -> str:
-        return "Device, ArchiveType, Ordinal"
+        return "device, archive_type, ordinal"
 
     @property
     def supported_by_prolog4(self) -> bool:
@@ -40,11 +40,11 @@ class Logika6(ABC, Meter):
         return BusProtocolType.RSbus
 
     @staticmethod
-    def get_event_prefix_for_tv(self) -> str:
+    def get_event_prefix_for_tv() -> str:
         return ""
 
     @staticmethod
-    def get_display_format(self, fi: TagDef):
+    def get_display_format(fi: TagDef):
         if fi.StdVar == StdVar.T:
             return "0.##"
         elif fi.StdVar == StdVar.AVG:
@@ -82,7 +82,7 @@ class Logika6(ABC, Meter):
             raise Exception("Unsupported archive")
 
     @staticmethod
-    def get_nt_from_tag(tag_value: str):
+    def get_nt_from_tag(tag_value: str) -> int | None:
         if not tag_value or len(tag_value) < 7:
             return None
 
@@ -99,9 +99,10 @@ class Logika6(ABC, Meter):
 
         if fi is None:
             raise Exception(fname + " not found for " + type(self).__name__)
+
         return fi
 
-    def get_mdb_map_all(self):
+    def get_mdb_map_all(self) -> list:
         r_ords = self.get_mdb_map('R')
         p_ords = self.get_mdb_map('P')
         c_ords = self.get_mdb_map('C')
@@ -113,6 +114,7 @@ class Logika6(ABC, Meter):
                 map_list.extend(p_ords)
             if i < self.MaxGroups:
                 map_list.extend(c_ords)
+
         return map_list
 
     def split_var_caption(self, composite_name):
@@ -124,12 +126,14 @@ class Logika6(ABC, Meter):
                 channel_type = composite_name[z]
                 channel_no = int(s_ch)
                 caption = composite_name[:z]
+
                 return caption, channel_type, channel_no
             else:
                 break
         channel_type = "0"
         channel_no = 0
         caption = composite_name
+
         return caption, channel_type, channel_no
 
     @staticmethod
@@ -140,7 +144,7 @@ class Logika6(ABC, Meter):
             year += 1900
         return year
 
-    def time_string_to_datetime(self, spt_date_time):
+    def time_string_to_datetime(self, spt_date_time) -> datetime:
         dt = spt_date_time.split("/", 1)
         df = dt[0].split("-", 2)
         tf = dt[1].split(":", 2)
@@ -150,7 +154,7 @@ class Logika6(ABC, Meter):
         return datetime(year, int(df[1]), int(df[0]), int(tf[0]), int(tf[1]), int(tf[2]))
 
     @staticmethod
-    def get_channel_kind(ordinal, channel_start=None, channel_count=None, channel_name=None):
+    def get_channel_kind(ordinal, channel_start=None, channel_count=None, channel_name=None) -> str:
         if ordinal is None:
             if channel_start == 0 and channel_count == 1:
                 return "Common"
@@ -167,40 +171,42 @@ class Logika6(ABC, Meter):
         else:
             return "п"
 
-    def read_tag_def(self, r):
-        self.read_common_def(r, chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx,
-                             ranging)
-
-        type = Tag6NodeType.__getitem__(r["Type"])
+    def read_tag_def(self, r) -> DataTagDef6:
+        chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging = (
+            Meter.read_common_def(r))
+        r = dict(r)
+        typing = Tag6NodeType.__getitem__(r["type"])
 
         ch = next((x for x in self.Channels if x.Prefix == chKey), None)
 
         index = None
-        count = int(r["Count"]) if r["Count"] is not None else None
+        count = int(r["count"]) if r["count"] is not None else None
 
-        if type == Tag6NodeType.Tag or type == Tag6NodeType.Array:
-            kind = TagKind.__getitem__((r["Kind"]))
-            isBasicParam = bool(r["Basic"])
-            index = int(r["Index"]) if r["Index"] is not None else None
+        if typing == Tag6NodeType.Tag or typing == Tag6NodeType.Array:
+            kind = TagKind.__getitem__((r["kind"]))
+            isBasicParam = bool(r["basic"])
+            index = int(r["index"]) if r["index"] is not None else None
         else:
             kind = TagKind.Undefined
             isBasicParam = False
 
-        return DataTagDef6(ch, type, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, None, index,
+        return DataTagDef6(ch, typing, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, None, index,
                            count, descriptionEx, ranging)
 
-    def read_archive_defs(self, rows):
+    def read_archive_defs(self, rows) -> list[ArchiveDef6 | MultipartArchiveDef6]:
         ra = []
-        ch = next((x for x in self.Channels if x.Prefix == "0"), None)
+        ch = next((x for x in self.channels if x.Prefix == "0"), None)
 
         for r in rows:
-            art = ArchiveType.from_string(str(r["ArchiveType"]))
-            sRecType = "System." + str(r["RecordType"])
+            r = dict(r)
+
+            art = ArchiveType.from_string(str(r["archive_type"]))
+            sRecType = "System." + str(r["record_type"])
             recType = type(sRecType)
-            name = str(r["Name"])
-            desc = str(r["Description"])
-            sOrds = str(r["Ordinal"]).split(' ')
-            capacity = int(r["Capacity"])
+            name = str(r["name"])
+            desc = str(r["description"])
+            sOrds = str(r["ordinal"]).split(' ')
+            capacity = int(r["capacity"])
 
             if len(sOrds) == 1:
                 a = ArchiveDef6(ch, art, recType, capacity, name, desc, int(sOrds[0]))
@@ -212,20 +218,21 @@ class Logika6(ABC, Meter):
 
         return ra
 
-    def read_archive_field_def(self, r):
-        chKey = str(r["Channel"])
-        ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-        art = ArchiveType.from_string(str(r["ArchiveType"]))
-        ord = int(r["Ordinal"])
+    def read_archive_field_def(self, r) -> ArchiveFieldDef6:
+        r = dict(r)
+        chKey = str(r["channel"])
+        ch = next((x for x in self.channels if x.Prefix == chKey), None)
+        art = ArchiveType.from_string(str(r["archive_type"]))
+        ordinal = int(r["ordinal"])
 
-        sDataType = "System." + str(r["DataType"])
+        sDataType = "System." + str(r["data_type"])
         t = type(sDataType)
 
-        sDbType = str(r["DbType"])
-        name = str(r["Name"])
-        desc = str(r["Description"])
+        sDbType = str(r["db_type"])
+        name = str(r["name"])
+        desc = str(r["description"])
 
-        oStdType = r["VarT"]
+        oStdType = r["var_t"]
         stv = StdVar[getattr(StdVar, oStdType) if isinstance(oStdType, str) and oStdType else 'unknown']
 
-        return ArchiveFieldDef6(ch, art, name, desc, ord, stv, t, sDbType, None)
+        return ArchiveFieldDef6(ch, art, name, desc, ordinal, stv, t, sDbType, None)

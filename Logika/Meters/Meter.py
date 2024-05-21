@@ -1,11 +1,11 @@
+import sqlite3
 import threading
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, List, Optional
-import sqlite3
 
-from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.ArchiveDef import ArchiveDef
+from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.Channel import ChannelKind, ChannelDef
 from Logika.Meters.DataTag import DataTag
 from Logika.Meters.StandardVars import StdVar
@@ -130,8 +130,10 @@ class Meter(ABC):
     _rr = []
 
     tagsLock = object()
-    channelsTable = None
-    metadata = sqlite3.connect('Logika_database.db')
+    channels_table = None
+
+    metadata = sqlite3.connect('Logika/Resourses/Logika_database')
+    metadata.row_factory = sqlite3.Row
 
     @property
     @abstractmethod
@@ -314,24 +316,26 @@ class Meter(ABC):
 
     @staticmethod
     def read_common_def(r):
-        chKey = str(r["Channel"])
-        name = str(r["Name"])
-        ordinal = int(r["Ordinal"])
-        desc = str(r["Description"])
+        r = dict(r)
 
-        kind = str(r["Kind"])
+        chKey = str(r["channel"])
+        name = str(r["name"])
+        ordinal = int(r["ordinal"])
+        desc = str(r["description"])
 
-        isBasicParam = bool(r["Basic"])
-        updRate = int(r["UpdateRate"])
+        kind = str(r["kind"])
+
+        isBasicParam = bool(r["basic"])
+        updRate = int(r["update_rate"])
 
         dataType = None
-        sDataType = str(r["DataType"])
+        sDataType = str(r["data_type"])
         if sDataType:
             dataType = type("System." + sDataType, True)
 
-        stv = StdVar.unknown if r["VarT"] is None else str(r["VarT"])
-        descriptionEx = str(r["DescriptionEx"])
-        ranging = str(r["Range"])
+        stv = StdVar.unknown if r["var_t"] is None else str(r["var_t"])
+        descriptionEx = str(r["description_ex"])
+        ranging = str(r["ranging"])
 
         return chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging
 
@@ -340,84 +344,92 @@ class Meter(ABC):
         pass
 
     @abstractmethod
-    def tags_sort(self):
+    def tags_sort(self) -> str:
         pass
 
     @abstractmethod
-    def archive_fields_sort(self):
+    def archive_fields_sort(self) -> str:
         pass
 
     def perf_debug_reset(self):
         self._tagVault = None
-        self.channelsTable = None
+        self.channels_table = None
         self._channels = None
         self._archives = None
-        self.metadata.Tables.Clear()
+        # TODO: очистить все таблицы
 
     def load_metadata(self):
-        devName = self.__class__.__name__[1:]  # TSPTxxx -> SPTxxx
+        dev_name = self.__class__.__name__[1:]  # TSPTxxx -> SPTxxx
 
         with Meter.tagsLock:
             # loading channels
-            if self.channelsTable is None:
-                self.channelsTable = self.load_res_table("Channels")
+            if self.channels_table is None:
+                self.channels_table = self.load_res_table("channels")
 
             if self._channels is None:
-                cr = self.channelsTable.Select("Device='" + devName + "'")
+                cr = [d for d in self.channels_table if d.get('device') == dev_name]
                 lc = []
                 for row in cr:
-                    st = int(row["Start"])
-                    ct = int(row["Count"])
-                    lc.append(ChannelDef(self, str(row["Key"]), st, ct, (row["Description"])))
+                    st = int(row["start"])
+                    ct = int(row["count"])
+                    lc.append(ChannelDef(self, str(row["key"]), st, ct, (row["description"])))
                 self._channels = lc
 
             # loading tags
             if self._tagVault is None:
-                tableName = self.family_name() + "Tags"
-                dt = self.metadata.Tables.get(tableName)
-                if dt is None:
-                    dt = self.load_res_table(tableName)
+                table_name = self.family_name() + "_tags"
+                dt = self.load_res_table(table_name)
 
                 lt = []
-                for r in dt.Select("Device='" + devName + "'", self.tags_sort):
+                to_sort = self.tags_sort().split(", ")
+                sorted_dt = sorted([d for d in dt if d.get('device') == dev_name],
+                                   key=lambda x: (x[to_sort[0]], x[to_sort[1]], x[to_sort[2]]))
+                for r in sorted_dt:
                     rt = self.read_tag_def(r)
                     lt.append(rt)
                 self._tagVault = TagVault(lt)
 
             # loading archives
-            arTableName = self.family_name() + "Archives"
-            dta = self.metadata.Tables.get(arTableName)
-            if dta is None:
-                dta = self.load_res_table(arTableName)
+            ar_table_name = self.family_name() + "_archives"
+            dta = self.load_res_table(ar_table_name)
 
             if self._archives is None:
-                aclassName = self.__class__.__name__
-                rows = dta.Select("Device='" + devName + "'", "Device, ArchiveType")
-                self._archives = self.read_archive_defs(rows)
+                aclass_name = self.__class__.__name__
+                rows = [d for d in dta if d.get('device') == dev_name]
+                sorted_rows = sorted(rows, key=lambda x: (x['device'], x['archive_type']))
+                self._archives = self.read_archive_defs(sorted_rows)
 
             # loading archive fields
-            afTableName = self.family_name() + "ArchiveFields"
-            dtf = self.metadata.Tables.get(afTableName)
-            if dtf is None:
-                dtf = self.load_res_table(afTableName)
+            af_table_name = self.family_name() + "_archive_fields"
+            dtf = self.load_res_table(af_table_name)
 
             if self.ref_archive_fields is None:
-                aclassName = self.__class__.__name__
-                rows = dtf.Select("Device='" + devName + "'", self.archive_fields_sort)
+                aclass_name = self.__class__.__name__
+                rows = [d for d in dtf if d.get('device') == dev_name]
+                to_sort = self.archive_fields_sort().split(", ")
+                sorted_rows = sorted(rows, key=lambda x: (x[to_sort[0]], x[to_sort[1]], x[to_sort[2]]))
                 lf = []
-                for r in rows:
+                for r in sorted_rows:
                     rf = self.read_archive_field_def(r)
                     lf.append(rf)
                 self.ref_archive_fields = lf
 
     @abstractmethod
-    def read_archive_defs(self, rows: List[DataRow]) -> List[ArchiveDef]:
+    def read_archive_defs(self, rows: List[dict]) -> List[ArchiveDef]:
         pass
 
     @staticmethod
-    def load_res_table(tableName: str):
-        # TODO: получить получить таблицу
-        pass
+    def load_res_table(tableName: str) -> list:
+        try:
+            res = []
+            cur = Meter.metadata.cursor()
+            cur.execute(f'select * from {tableName}')
+            rows = cur.fetchall()
+            for row in rows:
+                res.append(dict(row))
+            return res
+        except sqlite3.Error as e:
+            print(e)
 
     @property
     def tags(self) -> TagVault:

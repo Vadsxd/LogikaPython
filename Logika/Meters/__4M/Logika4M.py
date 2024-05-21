@@ -55,11 +55,11 @@ class Logika4M(ABC, Logika4):
 
     @property
     def tags_sort(self) -> str:
-        return "Device, Channel, Ordinal"
+        return "device, channel, ordinal"
 
     @property
     def archive_fields_sort(self) -> str:
-        return "Device, ArchiveType, Index"
+        return "device, archive_type, index"
 
     @abstractmethod
     def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
@@ -77,7 +77,7 @@ class Logika4M(ABC, Logika4):
     def supported_by_prolog4(self) -> bool:
         return True
 
-    def get_tag_length(self, buf, idx):
+    def get_tag_length(self, buf, idx) -> int:
         tl = buf[idx]
         if (tl & 0x80) > 0:
             tl &= 0x7F
@@ -155,48 +155,50 @@ class Logika4M(ABC, Logika4):
         return 1 + lenLen + self.t_len, v  # tag code + length field + payload
 
     def read_tag_def(self, r):
-        chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, range = self.readCommonDef(
-            r)
+        chKey, name, ordinal, kind, is_basic_param, updRate, dataType, stv, desc, description_ex, ranging = (
+            self.readCommonDef(r))
 
-        ch = next((x for x in self.Channels if x.Prefix == chKey), None)
+        ch = next((x for x in self.channels if x.Prefix == chKey), None)
 
-        sDbType = r["dbType"] if r["dbType"] is not None else None
-        units = str(r["Units"])
-        displayFormat = str(r["DisplayFormat"])
+        sDbType = r["db_type"] if r["db_type"] is not None else None
+        units = str(r["units"])
+        displayFormat = str(r["display_format"])
 
-        return TagDef4M(ch, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, sDbType, units,
-                        displayFormat, descriptionEx, range)
+        return TagDef4M(ch, name, stv, kind, is_basic_param, updRate, ordinal, desc, dataType, sDbType, units,
+                        displayFormat, description_ex, ranging)
 
     def read_archive_defs(self, rows):
         d = []
         for r in rows:
-            chKey = str(r["Channel"])
-            ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-            art = ArchiveType.from_string(str(r["ArchiveType"]))
-            recType = type("System." + str(r["RecordType"]))
-            name = str(r["Name"])
-            desc = str(r["Description"])
+            r = dict(r)
+            chKey = str(r["channel"])
+            ch = next((x for x in self.channels if x.Prefix == chKey), None)
+            art = ArchiveType.from_string(str(r["archive_type"]))
+            rec_type = type("System." + str(r["record_type"]))
+            name = str(r["name"])
+            desc = str(r["description"])
             capacity = int(r["capacity"])
-            ra = ArchiveDef4M(ch, art, recType, capacity, name, desc)
+            ra = ArchiveDef4M(ch, art, rec_type, capacity, name, desc)
             d.append(ra)
 
         return d
 
     def read_archive_field_def(self, r):
-        art = ArchiveType.from_string(str(r["ArchiveType"]))
-        ra = next((x for x in self.Archives if x.ArchiveType == art), None)
+        r = dict(r)
+        art = ArchiveType.from_string(str(r["archive_type"]))
+        ra = next((x for x in self.archives if x.ArchiveType == art), None)
 
-        idx = int(r["Index"])
-        t = type("System." + str(r["DataType"]))
+        idx = int(r["index"])
+        t = type("System." + str(r["data_type"]))
 
-        sDbType = str(r["DbType"])
-        name = str(r["Name"])
-        desc = str(r["Description"])
+        s_db_type = str(r["db_type"])
+        name = str(r["name"])
+        desc = str(r["description"])
 
-        oStdType = r["VarT"]
+        oStdType = r["var_t"]
         stv = StdVar[getattr(StdVar, oStdType) if isinstance(oStdType, str) and oStdType else 'unknown']
 
-        units = str(r["Units"])
-        displayFormat = str(r["DisplayFormat"])
+        units = str(r["units"])
+        display_format = str(r["display_format"])
 
-        return ArchiveFieldDef4M(ra, idx, name, desc, stv, t, sDbType, displayFormat, units)
+        return ArchiveFieldDef4M(ra, idx, name, desc, stv, t, s_db_type, display_format, units)

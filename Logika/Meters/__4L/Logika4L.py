@@ -168,7 +168,7 @@ class Logika4L(ABC, Logika4):
             raise Exception(f"unsupported binary type in GetValue: '{binaryType}'")
 
     @staticmethod
-    def size_of(dataType):
+    def size_of(dataType) -> int:
         if dataType == BinaryType.u8 or dataType == BinaryType.bitArray8:
             return 1
         elif dataType == BinaryType.bitArray16:
@@ -224,7 +224,7 @@ class Logika4L(ABC, Logika4):
         return ''.join(result)
 
     @staticmethod
-    def sync_header_to_datetime(arType, rd, rh, buffer, offset):
+    def sync_header_to_datetime(arType, rd, rh, buffer, offset) -> datetime | None:
         rawhdr = int.from_bytes(buffer[offset:offset + 4], byteorder='little')
         if rawhdr == 0x00000000 or rawhdr == 0xFFFFFFFF:
             return None
@@ -242,16 +242,16 @@ class Logika4L(ABC, Logika4):
             return None
 
     @property
-    def family_name(self):
+    def family_name(self) -> str:
         return "L4"
 
     @property
-    def tags_sort(self):
-        return "Device, Channel, Ordinal"
+    def tags_sort(self) -> str:
+        return "device, channel, ordinal"
 
     @property
-    def archive_fields_sort(self):
-        return "Device, ArchiveType, FieldOffset"
+    def archive_fields_sort(self) -> str:
+        return "device, archive_type, field_offset"
 
     @abstractmethod
     def get_model_from_image(self, flashImage):
@@ -262,18 +262,21 @@ class Logika4L(ABC, Logika4):
         pass
 
     def read_tag_def(self, r):
-        chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging = Meter.read_common_def(r)
-        ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-        dbType = r["dbType"] if r["dbType"] is not None else None
-        units = str(r["Units"])
-        displayFormat = str(r["DisplayFormat"])
-        sNativeType = str(r["InternalType"])
+        chKey, name, ordinal, kind, isBasicParam, updRate, dataType, stv, desc, descriptionEx, ranging = (
+            Meter.read_common_def(r))
+        ch = next((x for x in self.channels if x.Prefix == chKey), None)
+        r = dict(r)
+
+        dbType = r["db_type"] if r["db_type"] is not None else None
+        units = str(r["units"])
+        displayFormat = str(r["display_format"])
+        sNativeType = str(r["internal_type"])
         nativeType = BinaryType[sNativeType]
-        inRam = bool(r["InRAM"])
-        addr = r["Address"] if r["Address"] is not None else None
-        chOfs = r["ChannelOffset"] if r["ChannelOffset"] is not None else None
-        addonAddr = r["Addon"] if r["Addon"] is not None else None
-        addonChOfs = r["AddonOffset"] if r["AddonOffset"] is not None else None
+        inRam = bool(r["in_ram"])
+        addr = r["address"] if r["address"] is not None else None
+        chOfs = r["channel_offset"] if r["channel_offset"] is not None else None
+        addonAddr = r["addon"] if r["addon"] is not None else None
+        addonChOfs = r["addon_offset"] if r["addon_offset"] is not None else None
 
         return TagDef4L(ch, name, stv, kind, isBasicParam, updRate, ordinal, desc, dataType, dbType, units,
                         displayFormat, descriptionEx, ranging, nativeType, inRam, addr, chOfs, addonAddr, addonChOfs)
@@ -281,39 +284,41 @@ class Logika4L(ABC, Logika4):
     def read_archive_defs(self, rows):
         d = []
         for r in rows:
-            chKey = r["Channel"]
-            ch = next((x for x in self.Channels if x.Prefix == chKey), None)
-            art = ArchiveType.from_string(r["ArchiveType"])
-            name = r["Name"]
-            desc = r["Description"]
-            sRecType = "System." + r["RecordType"]
+            r = dict(r)
+            chKey = r["channel"]
+            ch = next((x for x in self.channels if x.Prefix == chKey), None)
+            art = ArchiveType.from_string(r["archive_type"])
+            name = r["name"]
+            desc = r["description"]
+            sRecType = "System." + r["record_type"]
             recType = type(sRecType)
-            recSize = r["RecordSize"]
-            count = r["Count"]
-            idx1 = r["Index1"]
-            hdr1 = r["Headers1"] if r["Headers1"] is not None else None
-            rec1 = r["Records1"]
-            idx2 = r["Index2"] if r["Index2"] is not None else None
-            hdr2 = r["Headers2"] if r["Headers2"] is not None else None
-            rec2 = r["Records2"] if r["Records2"] is not None else None
+            recSize = r["record_size"]
+            count = r["count"]
+            idx1 = r["index_1"]
+            hdr1 = r["headers_1"] if r["headers_1"] is not None else None
+            rec1 = r["records_1"]
+            idx2 = r["index_2"] if r["index_2"] is not None else None
+            hdr2 = r["headers_2"] if r["headers_2"] is not None else None
+            rec2 = r["records_2"] if r["records_2"] is not None else None
             ra = ArchiveDef4L(ch, art, recType, count, name, desc, recSize, idx1, hdr1, rec1, idx2, hdr2, rec2, False)
             d.append(ra)
 
         return d
 
     def read_archive_field_def(self, r):
-        art = ArchiveType.from_string(r["ArchiveType"])
-        ra = next((x for x in self.Archives if x.ArchiveType == art), None)
-        sDataType = "System." + r["DataType"]
+        r = dict(r)
+        art = ArchiveType.from_string(r["archive_type"])
+        ra = next((x for x in self.archives if x.ArchiveType == art), None)
+        sDataType = "System." + r["data_type"]
         t = type(sDataType)
-        sDbType = str(r["DbType"])
-        name = r["Name"]
-        desc = r["Description"]
-        stdType = r["VarT"]
-        units = r["Units"]
+        sDbType = str(r["db_type"])
+        name = r["name"]
+        desc = r["description"]
+        stdType = r["var_t"]
+        units = r["units"]
         displayFormat = None
-        nativeType = BinaryType[r["InternalType"]]
-        offset = r["FieldOffset"]
-        stv = StdVar.unknown if r["VarT"] is None else StdVar[r["VarT"]]
+        nativeType = BinaryType[r["internal_type"]]
+        offset = r["field_offset"]
+        stv = StdVar.unknown if r["var_t"] is None else StdVar[r["var_t"]]
 
         return ArchiveFieldDef4L(ra, name, desc, stv, t, sDbType, units, displayFormat, nativeType, offset)

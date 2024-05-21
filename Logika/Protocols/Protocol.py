@@ -17,6 +17,7 @@ from Logika.Protocols.M4.ErrorCode import ErrorCode
 from Logika.Protocols.M4.M4Opcode import M4Opcode
 from Logika.Protocols.M4.M4Protocol import M4Protocol
 from Logika.Meters.__4L.Logika4L import Logika4L
+from Logika.Protocols.SPBus.SPBusProtocol import SPBusProtocol
 
 
 class ProtoEvent(Enum):
