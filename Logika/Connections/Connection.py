@@ -107,9 +107,6 @@ class Connection(ABC):
     def reset_bus_state_tracker():
         print("resetting bus state")
 
-    # def mon(self, event: MonitorEventType, data: List[bytes], info: str):
-    #     Monitor.instance.on_monitor_event(self, MonitorEvent(datetime.datetime.now(), event, self.address, data, info))
-
     def check_if_closing(self):
         if self.closing_event.wait():
             raise ECommException(ExcSeverity.Stop, CommError.NotConnected)
@@ -165,7 +162,6 @@ class Connection(ABC):
 
                 self.state = ConnectionState.Connected
 
-                # self.Mon(MonitorEventType.Open, None, "соединение с '" + self.address + "' установлено")
                 self.log(LogLevel.Info,
                          "соединение установлено" + ("" if connDetails == "" else " (" + connDetails + ")"))
 
@@ -177,7 +173,6 @@ class Connection(ABC):
 
             except Exception as e:
                 self.log(LogLevel.Error, "", e)
-                # self.mon(MonitorEventType.Error, None, e.message)
                 raise
 
     def close(self):
@@ -195,12 +190,10 @@ class Connection(ABC):
                             pass
 
                     self.internal_close()
-                    # self.Mon(MonitorEventType.Close, None, "соединение с '" + self.address + "' завершено")
                     self.log(LogLevel.Info, "соединение завершено")
 
                 except Exception as e:
                     self.log(LogLevel.Warn, "ошибка при завершении соединения", e)
-                    # self.Mon(MonitorEventType.Error, None, "ошибка при отключении: " + e.message)
 
             self.state = ConnectionState.NotConnected
 
@@ -217,8 +210,6 @@ class Connection(ABC):
             if what & PurgeFlags.TX:
                 sp += "TX"
 
-            # self.Mon(MonitorEventType.Purge, None, sp)
-
     def read_available(self, buf: List[bytes], start: int, maxLength: int) -> int:
         self.check_if_connected()
         try:
@@ -226,10 +217,8 @@ class Connection(ABC):
             if nRead > 0:
                 self.rx_byte_cnt += nRead
                 rr = buf[start:start + nRead]
-                # self.Mon(MonitorEventType.Rx, rr, None)
         except Exception as e:
-            # self.Mon(MonitorEventType.Error, None, f"! {type(e).__name__} : {e}")
-            raise
+            raise e
 
         self.m_last_rx_time = datetime.now()
 
@@ -250,9 +239,7 @@ class Connection(ABC):
             self.tx_byte_cnt += nBytes
             if nBytes > 0:
                 wr = buf[start:start + nBytes]
-                # self.Mon(MonitorEventType.Tx, wr, None)
         except Exception as e:
-            # self.Mon(MonitorEventType.Error, None, f"! {type(e).__name__} : {e}")
             raise
 
     def state_change_delegate(self, new_state: ConnectionState):
@@ -276,7 +263,6 @@ class Connection(ABC):
     def read_timeout(self, value):
         self.m_read_timeout = value
         self.on_set_read_timeout(value)
-        # self.Mon(MonitorEventType.ChannelPropertiesChanged, None, f"@ ReadTimeout = {value} ms")
 
     def on_set_read_timeout(self, new_timeout: int):
         pass
@@ -297,25 +283,3 @@ class Connection(ABC):
     def reset_statistics(self):
         self.tx_byte_cnt = 0
         self.rx_byte_cnt = 0
-
-
-class MonitorEvent:
-    def __init__(self, timestamp: datetime, evt_type: MonitorEventType, address: str, data: bytearray, info: str):
-        self.timestamp = timestamp
-        self.evt_type = evt_type
-        self.address = address
-        self.data = data
-        self.info = info
-
-    def clone(self):
-        me = MonitorEvent
-        me.timestamp = self.timestamp
-        me.evt_type = self.evt_type
-        me.address = self.address
-        me.info = self.info
-        if self.data is not None:
-            me.data = bytearray(self.data)
-        return me
-
-    def __str__(self) -> str:
-        return f"{self.evt_type} {len(self.data) if self.data is not None else 0} b"

@@ -56,7 +56,7 @@ class TSPG742(Logika4M):
         return eus
 
     @staticmethod
-    def get_ns_descriptions(self) -> List[str]:
+    def get_ns_descriptions() -> List[str]:
         return [
             "Разряд батареи",
             "Частота входного сигнала на разъеме Х7 превышает 1,5 кГц",
@@ -114,7 +114,7 @@ class TSPG742(Logika4M):
         return False
 
     @staticmethod
-    def get_ads_tag_blocks(self) -> List[AdsTagBlock]:
+    def get_ads_tag_blocks() -> List[AdsTagBlock]:
         return [
             AdsTagBlock(0, 0, 0, 64),  # БД ch0
             AdsTagBlock(1, 1, 0, 64),  # БД ch1
