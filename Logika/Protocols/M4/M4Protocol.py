@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, IntEnum
 from typing import List
 
@@ -176,6 +176,9 @@ class M4Protocol(Protocol):
         self.extra_data: object = None
         self.op_flags: List[bool] = []
         self.next_record: datetime = datetime.now()
+        self.state = None
+        self.progress = None
+        self.result = None
 
     def reset_internal_bus_state(self):
         self.activeDev = None
@@ -726,8 +729,7 @@ class M4Protocol(Protocol):
         if not use_year_and_month_only:
             lb.extend([dt.day, dt.hour, dt.minute, dt.second, dt.microsecond & 0xFF, dt.microsecond >> 8])
 
-    def read_archive_m4(self, mtr, nt, pktId, partition, channel, archiveKind, from_dt, to_dt, numValues, result,
-                        nextRecord):
+    def read_archive_m4(self, mtr: Logika4M, nt: bytes, pktId: bytes, partition: int, channel: bytes, archiveKind: M4ArchiveId, from_dt: datetime, to_dt: datetime, numValues: int):
         self.select_device_and_channel(mtr, nt)
 
         from_dt = self.restrict_time(from_dt)
@@ -749,7 +751,8 @@ class M4Protocol(Protocol):
         p = self.do_m4_request(nt, M4Opcode.ReadArchive, bytes(lb), pktId)
         lb.clear()
 
-        result, nextRecord = self.parse_archive_packet(p)
+        self.result = self.parse_archive_packet(p)
+
         return p
 
     def parse_archive_packet(self, p: M4Packet):
@@ -850,7 +853,7 @@ class M4Protocol(Protocol):
         else:
             return deffinition.address + (deffinition.channelOffset if t.Channel.No == 2 else 0)
 
-    def update4L_tags_values(self, nt, tags, mi, flags):
+    def update4L_tags_values(self, nt: bytes, tags: List[DataTag], mi: MeterInstance, flags: updTagsFlags):
         mtr = tags[0].deffinition.Meter if isinstance(tags[0].deffinition.Meter, Logika4L) else None
         for i in range(len(tags)):
             t = tags[i]
@@ -875,8 +878,8 @@ class M4Protocol(Protocol):
                     ramFloatAddon = Logika4L.GetMFloat(rbuf)
                     t.Value += ramFloatAddon
 
-            if not flags & updTagsFlags.DontGetEUs:
-                t.EU = Logika4.getEU(mi.EUDict, def_.Units)
+            if updTagsFlags.DontGetEUs not in flags:
+                t.EU = Logika4.get_eu(mi.eu_dict, def_.Units)
 
             t.TimeStamp = datetime.now()
 
@@ -888,7 +891,7 @@ class M4Protocol(Protocol):
                 str(t.Value)) == 1:
             t.Value = "1" + str(t.Value)
 
-    def invalidate_flash_cache4L(self, nt, tags):
+    def invalidate_flash_cache4L(self, nt: bytes, tags: List[DataTag]):
         mmd = self.get_meter_instance(
             tags[0].deffinition.Meter if isinstance(tags[0].deffinition.Meter, Logika4L) else None, nt)
 
@@ -903,7 +906,7 @@ class M4Protocol(Protocol):
             for p in range(stp, enp + 1):
                 mmd.pageMap[p] = False
 
-    def update_tags4M(self, nt, tags, mi, flags):
+    def update_tags4M(self, nt: bytes, tags: List[DataTag], mi: MeterInstance, flags: updTagsFlags):
         mtr = tags[0].deffinition.Meter if isinstance(tags[0].deffinition.Meter, Logika4M) else None
 
         chs = []
@@ -915,23 +918,23 @@ class M4Protocol(Protocol):
             chs.append(t.Channel.No)
             ords.append(t.Ordinal)
 
-        if len(ords) == self.MAX_TAGS_AT_ONCE or t == tags[-1]:
-            va, opFlags = self.read_tags_m4(mtr, nt, chs, ords)
-            for z in range(len(ords)):
-                vt = tags[blkSt + z]
-                vt.Value = va[z]
-                if vt.Value is None:
-                    vt.ErrorDesc = Logika4M.ND_STR
-                if not flags & updTagsFlags.DontGetEUs:
-                    vt.EU = Logika4.getEU(mi.EUDict, td.Units)
-                vt.Oper = opFlags[z]
-                vt.TimeStamp = datetime.now()
+            if len(ords) == self.MAX_TAGS_AT_ONCE or t == tags[-1]:
+                va, opFlags = self.read_tags_m4(mtr, nt, chs, ords)
+                for z in range(len(ords)):
+                    vt = tags[blkSt + z]
+                    vt.Value = va[z]
+                    if vt.Value is None:
+                        vt.ErrorDesc = Logika4M.ND_STR
+                    if updTagsFlags.DontGetEUs not in flags:
+                        vt.EU = Logika4.get_eu(mi.eu_dict, td.Units)
+                    vt.Oper = opFlags[z]
+                    vt.TimeStamp = datetime.now()
 
-            blkSt += len(ords)
-            chs.clear()
-            ords.clear()
+                blkSt += len(ords)
+                chs.clear()
+                ords.clear()
 
-    def read_interval_archive_def(self, m, src_nt, dst_nt, ar_type):
+    def read_interval_archive_def(self, m: Meter, src_nt: bytes, dst_nt: bytes, ar_type: ArchiveType):
         mtr4 = m if isinstance(m, Logika4) else None
         if not ar_type.is_interval_archive:
             raise ValueError("wrong archive type")
@@ -962,7 +965,7 @@ class M4Protocol(Protocol):
                 dc = ar.Table.Columns.Add(fld_name, fd.ElementType)
                 dc.ExtendedProperties[Archive.FLD_EXTPROP_KEY] = af
 
-        state = None
+        self.state = None
         if isinstance(m, Logika4L):
             ars = [Logika4LTVReadState() for _ in range(ard.ChannelDef.Count)]
             for i in range(ard.ChannelDef.Count):
@@ -970,25 +973,24 @@ class M4Protocol(Protocol):
                 ars[i].idx = -1
                 ars[i].fArchive = SyncFlashArchive4(mi, ard, ard.ChannelDef.Start + i, mi)
             rs = Logika4LArchiveRequestState(ars)
-            state = rs
+            self.state = rs
         else:
             rs = Logika4MArchiveRequestState()
             rs.arDef = ard
             rs.fieldDefs = [x for x in field_defs]
-            state = rs
+            self.state = rs
 
         return ar
 
-    def read_interval_archive(self, m, src_nt, nt, ar, start, end, state):
+    def read_interval_archive(self, m, src_nt, nt, ar, start, end):
         if isinstance(m, Logika4L):
-            return self.read_flash_archive4L(m, nt, ar, start, end, state)
+            return self.read_flash_archive4L(m, nt, ar, start, end)
         elif isinstance(m, Logika4M):
-            return self.read_interval_archive4M(m, nt, ar, start, end, state)
+            return self.read_interval_archive4M(m, nt, ar, start, end)
         else:
             raise ValueError("wrong meter type")
 
-    def read_flash_archive4L(self, m: Logika4M, nt: bytes, ar: Archive, start: datetime, end: datetime, state_obj,
-                             progress):
+    def read_flash_archive4L(self, m: Logika4M, nt: bytes, ar: Archive, start: datetime, end: datetime, state_obj):
         state = state_obj
 
         PCT_HEADERS = 0  # percentage of headers to data (progress calc)
@@ -1017,7 +1019,7 @@ class M4Protocol(Protocol):
                     trs.dirtyIndexes = sorted(trs.indexes, key=lambda x: x.idx)
                     trs.dirtyIndexes_initial_count = len(trs.dirtyIndexes)
                 else:
-                    progress = i * (PCT_HEADERS + PCT_DATA) + (pct_hdr_read * PCT_HEADERS / 100.0)
+                    self.progress = i * (PCT_HEADERS + PCT_DATA) + (pct_hdr_read * PCT_HEADERS / 100.0)
                     return True
 
             fa.update_data(trs.dirtyIndexes)
@@ -1026,12 +1028,12 @@ class M4Protocol(Protocol):
                 if trs.dirtyIndexes_initial_count > 0:
                     pct_data_read = 100.0 * (
                             trs.dirtyIndexes_initial_count - len(trs.dirtyIndexes)) / trs.dirtyIndexes_initial_count
-                    progress = i * (PCT_HEADERS + PCT_DATA) + PCT_HEADERS + PCT_DATA * pct_data_read / 100.0
+                    self.progress = i * (PCT_HEADERS + PCT_DATA) + PCT_HEADERS + PCT_DATA * pct_data_read / 100.0
                 else:
-                    progress = 0
+                    self.progress = 0
                 return True
 
-        progress = 100
+        self.progress = 100
 
         if ar.ArchiveType.is_interval_archive:
             self.process_interval_data_4L(state, ar)
@@ -1041,7 +1043,7 @@ class M4Protocol(Protocol):
         return False
 
     @staticmethod
-    def process_interval_data_4L(state, ar):
+    def process_interval_data_4L(state, ar: IntervalArchive):
         ar.Table.Rows.Clear()
         for tv in range(len(state.ars)):
             trs = state.ars[tv]
@@ -1088,7 +1090,7 @@ class M4Protocol(Protocol):
                     sr = ServiceRecord(hdp.Timestamp, evt, desc)
                     svcArchive.Records.append(sr)
 
-    def init_4L_service_archive_read_state(self, m, nt, arType):
+    def init_4L_service_archive_read_state(self, m: Logika4L, nt: bytes, arType: ArchiveType):
         mi = self.get_meter_instance(m, nt)
         ard = next(x for x in m.Archives if x.ArchiveType == arType)
         tvsa = [Logika4LTVReadState() for _ in range(ard.ChannelDef.Count)]
@@ -1108,7 +1110,7 @@ class M4Protocol(Protocol):
         return Logika4LArchiveRequestState(tvsa)
 
     @staticmethod
-    def fix_intv_timestamp(r: M4ArchiveRecord, art, mtd: MeterInstance):
+    def fix_intv_timestamp(r: M4ArchiveRecord, art: ArchiveType, mtd: MeterInstance):
         if r.dt == datetime.min:
             if art == ArchiveType.Hour:
                 r.dt = r.interval_mark
@@ -1181,8 +1183,7 @@ class M4Protocol(Protocol):
         return has_more_data
 
     @staticmethod
-    def archive_rec_to_service_rec(mtr: Logika4M, at: ArchiveType, channel: int,
-                                   aRec: M4ArchiveRecord) -> ServiceRecord:
+    def archive_rec_to_service_rec(mtr: Logika4M, at: ArchiveType, channel: int, aRec: M4ArchiveRecord) -> ServiceRecord:
         sEvent = str(aRec.values[0])
         eventDesc = None
         if at == ArchiveType.ErrorsLog:
@@ -1193,21 +1194,20 @@ class M4Protocol(Protocol):
 
         return ServiceRecord(aRec.dt, sEvent, eventDesc)
 
-    def read_service_archive(self, m, srcNt, nt, ar, start, end, state, progress):
-        if not ar.ArchiveType.IsServiceArchive:
+    def read_service_archive(self, m: Meter, srcNt: bytes, nt: bytes, ar: ServiceArchive, start: datetime, end: datetime):
+        if not ar.ArchiveType.is_service_archive:
             raise ValueError("wrong archive type")
 
         if isinstance(m, Logika4M):
-            return self.read_service_archive_4M(m, nt, ar, start, end, state, progress)
+            return self.read_service_archive_4M(m, nt, ar, start, end)
 
         elif isinstance(m, Logika4L):
-            return self.read_flash_archive_4L(m, nt, ar, start, end, state, progress)
+            return self.read_flash_archive_4L(m, nt, ar, start, end)
 
         else:
             raise ValueError("wrong meter type")
 
-    def read_service_archive_4M(self, m: Logika4M, nt, ar: ServiceArchive, start: datetime, end: datetime, state,
-                                progress):
+    def read_service_archive_4M(self, m: Logika4M, nt: bytes, ar: ServiceArchive, start: datetime, end: datetime):
         if ar.ArchiveType == ArchiveType.ParamsLog:
             archive_code = M4ArchiveId.ParamsLog
         elif ar.ArchiveType == ArchiveType.ErrorsLog:
@@ -1223,14 +1223,14 @@ class M4Protocol(Protocol):
         ch_start = ard.ChannelDef.Start
         ch_end = ard.ChannelDef.Start + ard.ChannelDef.Count - 1
 
-        t_ptr = state if state is not None else datetime.min
+        t_ptr = self.state if self.state is not None else datetime.min
 
         next_ptrs = [datetime.min] * ard.ChannelDef.Count
         t_start = t_ptr if t_ptr != datetime.min else start
         tmp_list = []
 
         for ch in range(ch_start, ch_end + 1):
-            data, next_ptr = self.read_archive_m4(m4m, nt, 0, M4.PARTITION_CURRENT, ch, archive_code, t_start, end, 64)
+            data, next_ptr = self.read_archive_m4(m4m, nt, 0, self.PARTITION_CURRENT, ch, archive_code, t_start, end, 64)
             for r in data:
                 evt = self.archive_rec_to_service_rec(m4m, ar.ArchiveType, ch, r)
                 tmp_list.append(evt)
@@ -1245,10 +1245,10 @@ class M4Protocol(Protocol):
 
         first_rec_time = ar.Records[0].tm if ar.Records else start
 
-        state = t_ptr
+        self.state = t_ptr
         if t_ptr == datetime.min:
-            progress = 100
+            self.progress = 100
         else:
-            progress = ((t_ptr - first_rec_time).total_seconds() * 100) / (end - first_rec_time).total_seconds()
+            self.progress = ((t_ptr - first_rec_time).total_seconds() * 100) / (end - first_rec_time).total_seconds()
 
         return t_ptr != datetime.min and t_ptr < end
