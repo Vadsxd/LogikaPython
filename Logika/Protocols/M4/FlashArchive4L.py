@@ -1,10 +1,8 @@
 from typing import List
-from datetime import datetime
 
 from Logika.Meters.ArchiveDef import ArchiveDef4L
-from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.__4L.Logika4L import Logika4L
-from Logika.Protocols.M4.FlashRingBuffer import FRBIndex, FlashArray
+from Logika.Protocols.M4.FlashRingBuffer import FRBIndex, FlashArray, FlashRingBuffer
 from Logika.Protocols.M4.M4Protocol import MeterInstance
 
 
@@ -37,7 +35,7 @@ class FlashArchive4:
         self.deffinition = arDef
         idxAddr = self.deffinition.IndexAddr2 if channelNo == 2 else self.deffinition.IndexAddr
         if arDef.ArchiveType.IsIntervalArchive:
-            dataAddr = self.deffinition.HeadersAddr2 if channelNo == 2 else deffinition.HeadersAddr
+            dataAddr = self.deffinition.HeadersAddr2 if channelNo == 2 else self.deffinition.HeadersAddr
         else:
             dataAddr = self.deffinition.RecordsAddr2 if channelNo == 2 else self.deffinition.RecordsAddr
         self.headers = FlashRingBuffer(self, idxAddr, dataAddr, self.deffinition.Capacity, elementSize, HeaderTimeGetter, HeaderValueGetter)
@@ -97,7 +95,7 @@ class SyncFlashArchive4(FlashArchive4):
         self.RD = value
 
     @staticmethod
-    def get_header_time(fa: FlashArchive4, buffer: List[bytes], offset: int):
+    def get_header_time(fa: FlashArchive4, buffer: bytes, offset: int):
         sfa = fa.__class__ = SyncFlashArchive4
         return Logika4L.sync_header_to_datetime(sfa.ArchiveType, sfa.RD, sfa.RH, buffer, offset)
 
@@ -122,7 +120,7 @@ class AsyncFlashArchive4(FlashArchive4):
         super().__init__(mi, arDef, channelNo, arDef.RecordSize, self.get_async_record_time, ValueGetter)
 
     @staticmethod
-    def get_async_record_time(archive: FlashArchive4, buffer: List[bytes], offset: int):
+    def get_async_record_time(archive: FlashArchive4, buffer: bytes, offset: int):
         return Logika4L.get_value(Logika4L.BinaryType.svcRecordTimestamp, buffer, offset)
 
     def update_data(self, indexes: List[FRBIndex]):

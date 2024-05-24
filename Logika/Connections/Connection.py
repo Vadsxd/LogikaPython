@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from enum import Flag, auto
-from typing import List, Optional
+from typing import Optional
 
 from Logika.ECommException import ECommException, ExcSeverity, CommError
 from Logika.LogLevel import LogLevel
@@ -135,11 +135,11 @@ class Connection(ABC):
         pass
 
     @abstractmethod
-    def internal_read(self, buf: List[bytes], start: int, max_length: int) -> int:
+    def internal_read(self, buf: bytes, start: int, max_length: int) -> int:
         pass
 
     @abstractmethod
-    def internal_write(self, buf: List[bytes], start: int, n_bytes: int):
+    def internal_write(self, buf: bytes, start: int, n_bytes: int):
         pass
 
     @property
@@ -210,7 +210,7 @@ class Connection(ABC):
             if what & PurgeFlags.TX:
                 sp += "TX"
 
-    def read_available(self, buf: List[bytes], start: int, maxLength: int) -> int:
+    def read_available(self, buf: bytes, start: int, maxLength: int) -> int:
         self.check_if_connected()
         try:
             nRead = self.internal_read(buf, start, maxLength)
@@ -224,14 +224,14 @@ class Connection(ABC):
 
         return nRead
 
-    def read(self, buf: List[bytes], start: int, length: int):
+    def read(self, buf: bytes, start: int, length: int):
         nRead = 0
 
         while nRead < length:
             self.check_if_closing()
             nRead += self.read_available(buf, start + nRead, length - nRead)
 
-    def write(self, buf: List[bytes], start: int, nBytes: int):
+    def write(self, buf: bytes, start: int, nBytes: int):
         self.check_if_connected()
         self.check_if_closing()
         try:

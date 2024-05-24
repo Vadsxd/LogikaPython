@@ -20,7 +20,8 @@ from Logika.Meters.__4L.Logika4L import Logika4L
 from Logika.Meters.__4L.SPG741 import TSPG741
 from Logika.Meters.__4M.Logika4M import Logika4M
 from Logika.Protocols.M4.ErrorCode import ErrorCode
-from Logika.Protocols.M4.FlashArchive4L import AsyncFlashArchive4, Logika4LArchiveRequestState
+from Logika.Protocols.M4.FlashArchive4L import AsyncFlashArchive4, Logika4LArchiveRequestState, SyncFlashArchive4, \
+    Logika4LTVReadState
 from Logika.Protocols.M4.M4ArchiveId import M4ArchiveId
 from Logika.Protocols.M4.M4ArchiveRecord import M4ArchiveRecord
 from Logika.Protocols.M4.M4Opcode import M4Opcode
@@ -69,7 +70,7 @@ class MeterInstance:
 
     def read_rdrh(self):
         rdta = [self.vipTags[ImportantTag.RDay][0], self.vipTags[ImportantTag.RHour][0]]
-        self.proto.updateTags(self.nt, rdta, updTagsFlags.DontGetEUs)
+        self.proto.update_tags(self.nt, rdta, updTagsFlags.DontGetEUs)
         self.rd = int(rdta[0].Value)
         self.rh = int(rdta[1].Value)
 
@@ -77,7 +78,7 @@ class MeterInstance:
     def eu_dict(self):
         if self.eus is None:
             if ImportantTag.EngUnits in self.vipTags:
-                self.proto.updateTags(self.nt, self.vipTags[ImportantTag.EngUnits], updTagsFlags.DontGetEUs)
+                self.proto.update_tags(self.nt, self.vipTags[ImportantTag.EngUnits], updTagsFlags.DontGetEUs)
                 self.eus = self.mtr.build_eu_dict(self.vipTags[ImportantTag.EngUnits])
         return self.eus
 
@@ -89,7 +90,7 @@ class MeterInstance:
             if tTime is None or tDate is None:
                 return datetime.min
             dta = [DataTag(tDate, 0), DataTag(tTime, 0)]
-            self.proto.updateTags(self.nt, dta, updTagsFlags.DontGetEUs)
+            self.proto.update_tags(self.nt, dta, updTagsFlags.DontGetEUs)
             devTime = Logika4.combine_date_time(str(dta[0].Value), str(dta[1].Value))
             self.timeDiff = datetime.now() - devTime
         return datetime.now() - self.timeDiff
@@ -198,16 +199,17 @@ class M4Protocol(Protocol):
             self.connection.write(self.WAKEUP_SEQUENCE)
 
     def internal_close_comm_session(self, not_used: bytes, nt: bytes):
-        self.do_legacy_request(nt, M4Opcode.SessionClose, bytearray([0, 0, 0, 0]), 0, RecvFlags.DontThrowOnErrorReply)
+        self.do_legacy_request(nt, M4Opcode.SessionClose, [bytearray(0), bytearray(0), bytearray(0), bytearray(0)],
+                               0, RecvFlags.DontThrowOnErrorReply)
         # в зависимости от ответа bsu поправить также и старый пролог
 
     @staticmethod
     def gen_raw_handshake(dest_nt: bytes):
         hsArgs = [0, 0, 0, 0]
-        pBuf = [0] * (3 + len(hsArgs) + 2)
+        pBuf: bytearray = bytearray()
         pBuf[0] = M4Protocol.FRAME_START
         pBuf[1] = dest_nt if dest_nt else M4Protocol.BROADCAST
-        pBuf[2] = M4Opcode.Handshake
+        pBuf[2] = M4Opcode.Handshake.value
 
         pBuf[3 + len(hsArgs)] = Logika4.checksum8(pBuf, 1, len(hsArgs) + 2)
         pBuf[3 + len(hsArgs) + 1] = M4Protocol.FRAME_END
@@ -221,7 +223,7 @@ class M4Protocol(Protocol):
                 sc.BaudRate = self.initialBaudRate
                 self.log(LogLevel.Debug, f"восстановлена начальная скорость обмена {int(self.initialBaudRate)} bps")
 
-    def select_device_and_channel(self, mtr: Logika4, z_nt: bytes, tv: M4_MeterChannel = M4_MeterChannel.SYS):
+    def select_device_and_channel(self, mtr: Logika4, z_nt: bytes, tv: int = M4_MeterChannel.SYS):
         if mtr is None:
             raise ValueError()
 
@@ -246,7 +248,7 @@ class M4Protocol(Protocol):
 
             alreadyAwake = self.activeDev and self.activeDev.nt == nt
             slowFFs = not mtr.supports_fast_session_init and not alreadyAwake
-            hsPkt = self.handshake(nt, tv, slowFFs)
+            hsPkt = self.handshake(nt, bytearray(tv), slowFFs)
 
             detectedType = Logika4.MeterTypeFromResponse(hsPkt.Data[0], hsPkt.Data[1], hsPkt.Data[2])
             if detectedType != mtr:
@@ -258,8 +260,9 @@ class M4Protocol(Protocol):
             self.activeDev.lastIOTime = datetime.now()
 
     def get_meter_type(self, src_nt: bytes, dst_nt: bytes):
-        hsPkt = self.handshake(dst_nt, 0, False)
+        hsPkt = self.handshake(dst_nt, bytearray(0), False)
         self.extra_data = hsPkt.Data[2]
+
         return Logika4.meter_type_from_response(hsPkt.Data[0], hsPkt.Data[1], hsPkt.Data[2])
 
     def get_meter_instance(self, m, nt):
@@ -273,7 +276,7 @@ class M4Protocol(Protocol):
 
         return mi
 
-    def handshake(self, nt: bytes, channel: bytes, bSlowFFs: bool):
+    def handshake(self, nt: bytes, channel: bytearray, bSlowFFs: bool):
         if self.activeDev and nt != self.activeDev.nt:
             self.reset_internal_bus_state()
 
@@ -284,16 +287,16 @@ class M4Protocol(Protocol):
         reqData = [channel, 0, 0, 0]
         return self.do_legacy_request(nt, M4Opcode.Handshake, reqData, 3)
 
-    def do_legacy_request(self, nt: bytes, req_func: M4Opcode, data: List[bytearray], expected_data_len: int, flags: RecvFlags=0):
+    def do_legacy_request(self, nt: bytes, req_func: M4Opcode, data: bytearray, expected_data_len: int, flags: RecvFlags=0):
         self.send_legacy_packet(nt, req_func, data)
-        return self.recv_packet(nt, req_func, None, expected_data_len, flags)
+        return self.recv_packet(nt, req_func, bytearray(), expected_data_len, flags)
 
-    def do_m4_request(self, nt: bytes, req_func: M4Opcode, data: bytes, pktId: bytes=None, flags: RecvFlags=0):
+    def do_m4_request(self, nt: bytes, req_func: M4Opcode, data: bytearray, pktId: bytes=None, flags: RecvFlags=0):
         if pktId is None:
             pktId = self.id_ctr
             self.id_ctr += 1
         self.send_extended_packet(nt, pktId, req_func, data)
-        p = self.recv_packet(nt, req_func, pktId, 0, flags)
+        p = self.recv_packet(nt, req_func, bytearray(pktId), 0, flags)
         return p
 
     def recv_packet(self, expected_nt: bytes, expected_opcode: M4Opcode, expected_id: bytearray, expectedDataLength: int,
@@ -408,7 +411,7 @@ class M4Protocol(Protocol):
         devAcksNewBR = False
         self.log(LogLevel.Info, f"установка скорости обмена {int(baud_rate)} bps")
         try:
-            rsp = self.do_legacy_request(nt, M4Opcode.SetSpeed, [nbr, 0, 0, 0], 0, RecvFlags.DontThrowOnErrorReply)
+            rsp = self.do_legacy_request(nt, M4Opcode.SetSpeed, bytearray([nbr, 0, 0, 0]), 0, RecvFlags.DontThrowOnErrorReply)
             if rsp.FunctionCode == M4Opcode.SetSpeed:
                 devAcksNewBR = True
                 time.sleep(0.25)
@@ -434,9 +437,9 @@ class M4Protocol(Protocol):
                 self.log(LogLevel.Info, f"восстановлена скорость обмена {int(prevBaudRate)} bps")
         return changedOk
 
-    def send_legacy_packet(self, nt: bytes, func: M4Opcode, data: List[bytes]):
+    def send_legacy_packet(self, nt: bytes, func: M4Opcode, data: bytes):
         pkt = M4Packet()
-        pBuf = bytearray(3 + len(data) + 2)
+        pBuf = bytearray()
 
         pBuf[0] = self.FRAME_START
         pBuf[1] = nt if nt is not None else self.BROADCAST
@@ -521,14 +524,14 @@ class M4Protocol(Protocol):
 
         return pkt.Data
 
-    def read_flash_pages(self, mtr: Logika4L, nt: bytes, start_page: int, page_count: int) -> List[bytearray]:
+    def read_flash_pages(self, mtr: Logika4L, nt: bytes, start_page: int, page_count: int) -> bytearray:
         if page_count <= 0:
             raise ValueError("ReadFlashPages: zero page count")
 
         self.select_device_and_channel(mtr, nt)
-        cmdbuf: List[bytearray] = []
+        cmdbuf: bytearray
 
-        retbuf: List[bytearray] = []
+        retbuf: bytearray
 
         for p in range((page_count + self.MAX_PAGE_BLOCK - 1) // self.MAX_PAGE_BLOCK):
             pages_to_req = page_count - p * self.MAX_PAGE_BLOCK
@@ -573,7 +576,7 @@ class M4Protocol(Protocol):
 
         return retbuf
 
-    def send_extended_packet(self, nt: bytes, packet_id: bytes, opcode: M4Opcode, data: List[bytearray]):
+    def send_extended_packet(self, nt: bytes, packet_id: bytes, opcode: M4Opcode, data: bytearray):
         CRC_LEN = 2
         HDR_LEN = 8
 
@@ -606,13 +609,13 @@ class M4Protocol(Protocol):
                 ordinals):
             raise ValueError("некорректные входные параметры функции readTagsM4")
 
-        lb = []
+        lb = bytearray()
         for i in range(len(ordinals)):
             ch = ordinals[i] // self.CHANNEL_NBASE if ordinals[i] >= self.CHANNEL_NBASE else channels[i]
             ordinal = ordinals[i] % self.CHANNEL_NBASE
             self.append_pnum(lb, ch, ordinal)
 
-        p = self.do_m4_request(nt, M4Opcode.ReadTags, bytes(lb))
+        p = self.do_m4_request(nt, M4Opcode.ReadTags, lb)
         lb.clear()
 
         oa = self.parse_m4_tags_packet(p)
@@ -650,7 +653,7 @@ class M4Protocol(Protocol):
         return valuesList
 
     @staticmethod
-    def append_pnum(lb: List[int], channel: int, ordinal: int):
+    def append_pnum(lb: bytearray, channel: int, ordinal: int):
         lb.append(0x4A)
         lb.append(0x03)
 
@@ -661,7 +664,7 @@ class M4Protocol(Protocol):
     def write_params_m4(self, mtr: Logika4M, nt: bytes, wda: List[TagWriteData]):
         self.select_device_and_channel(mtr, nt)
 
-        lb = []
+        lb = bytearray()
         for twd in wda:
             v = twd.value
 
@@ -695,8 +698,8 @@ class M4Protocol(Protocol):
             if twd.oper is not None:
                 lb.extend([0x45, 0x01, 0x01] if twd.oper else [0x45, 0x01, 0x00])
 
-        p = self.do_m4_request(nt, M4Opcode.WriteTags, bytes(lb))
-        errors = [None] * len(wda)
+        p = self.do_m4_request(nt, M4Opcode.WriteTags, lb)
+        errors = []
 
         tp = 0
         for i in range(len(wda)):
@@ -718,13 +721,13 @@ class M4Protocol(Protocol):
         if dt != datetime.min:
             y = dt.year - 2000
             if y < 0:
-                return datetime(2000, 1, 1, 0, 0, 0, dt.tzinfo)
+                return datetime(2000, 1, 1, 0, 0, 0, 0, dt.tzinfo)
             elif y > 255:
                 return datetime(2255, 1, 31, 23, 59, 59, 999, dt.tzinfo)
         return dt
 
     @staticmethod
-    def append_date_tag(lb: List[int], dt: datetime, use_year_and_month_only: bool):
+    def append_date_tag(lb: bytearray, dt: datetime, use_year_and_month_only: bool):
         lb.append(0x49)
         lb.append(2 if use_year_and_month_only else 8)
         lb.append(dt.year - 2000)
@@ -742,9 +745,9 @@ class M4Protocol(Protocol):
             self.next_record = datetime.min
             raise ValueError("протокол M4 не поддерживает чтение в обратном порядке")
 
-        lb = bytearray([partition & 0xFF, partition >> 8, channel, archiveKind])
+        lb: bytearray = bytearray([0x04, 0x05, partition & 0xFF, partition >> 8, channel, archiveKind])
         if mtr.SupportsFLZ:
-            compFlags_archId = archiveKind | CompressionType.FLZLimitedLength
+            compFlags_archId = archiveKind.value | CompressionType.FLZLimitedLength
             lb.append(compFlags_archId)
         if numValues > 0xFF:
             numValues = 0xFF
@@ -753,7 +756,7 @@ class M4Protocol(Protocol):
         if to_dt != datetime.min:
             self.append_date_tag(lb, to_dt, False)
 
-        p = self.do_m4_request(nt, M4Opcode.ReadArchive, bytes(lb), pktId)
+        p = self.do_m4_request(nt, M4Opcode.ReadArchive, lb, pktId)
         lb.clear()
 
         self.result = self.parse_archive_packet(p)

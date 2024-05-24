@@ -40,7 +40,7 @@ class FlashArray:
         self.element_size: int = element_size
         self.mtr_instance: MeterInstance = meter_instance
 
-        self.flash: List[bytearray] = []
+        self.flash: bytearray = bytearray()
         self.page_map: List[bool] = []
 
         self.first_element_offset: int = data_addr - start_page * self.PAGE_SIZE
