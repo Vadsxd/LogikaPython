@@ -16,9 +16,9 @@ from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Meter import Meter
 from Logika.Meters.TagDef import TagDef4L, TagDef4M
 from Logika.Meters.Types import TagKind, ImportantTag, ArchiveType
-from Logika.Meters.__4L.Logika4L import Logika4L
+from Logika.Meters.__4L.Logika4L import Logika4L, BinaryType
 from Logika.Meters.__4L.SPG741 import TSPG741
-from Logika.Meters.__4M.Logika4M import Logika4M
+from Logika.Meters.__4M.Logika4M import Logika4M, OperParamFlag
 from Logika.Protocols.M4.ErrorCode import ErrorCode
 from Logika.Protocols.M4.FlashArchive4L import AsyncFlashArchive4, Logika4LArchiveRequestState, SyncFlashArchive4, \
     Logika4LTVReadState
@@ -199,8 +199,7 @@ class M4Protocol(Protocol):
             self.connection.write(self.WAKEUP_SEQUENCE)
 
     def internal_close_comm_session(self, not_used: bytes, nt: bytes):
-        self.do_legacy_request(nt, M4Opcode.SessionClose, [bytearray(0), bytearray(0), bytearray(0), bytearray(0)],
-                               0, RecvFlags.DontThrowOnErrorReply)
+        self.do_legacy_request(nt, M4Opcode.SessionClose, bytearray(4),0, RecvFlags.DontThrowOnErrorReply)
         # в зависимости от ответа bsu поправить также и старый пролог
 
     @staticmethod
@@ -284,8 +283,8 @@ class M4Protocol(Protocol):
         time.sleep(0.1)
         self.connection.purge_comms(PurgeFlags.RX)
 
-        reqData = [channel, 0, 0, 0]
-        return self.do_legacy_request(nt, M4Opcode.Handshake, reqData, 3)
+        req_data = bytearray([channel, 0, 0, 0])
+        return self.do_legacy_request(nt, M4Opcode.Handshake, req_data, 3)
 
     def do_legacy_request(self, nt: bytes, req_func: M4Opcode, data: bytearray, expected_data_len: int, flags: RecvFlags=0):
         self.send_legacy_packet(nt, req_func, data)
@@ -418,7 +417,7 @@ class M4Protocol(Protocol):
                 self.connection.PurgeComms(PurgeFlags.RX | PurgeFlags.TX)
 
                 serialConn.BaudRate = baud_rate
-                rsp = self.do_legacy_request(nt, M4Opcode.Handshake, [tv, 0, 0, 0], 3, RecvFlags.DontThrowOnErrorReply)
+                rsp = self.do_legacy_request(nt, M4Opcode.Handshake, bytearray([tv, 0, 0, 0]), 3, RecvFlags.DontThrowOnErrorReply)
                 changedOk = rsp.FunctionCode == M4Opcode.Handshake
 
         except ECommException as ece:
@@ -439,11 +438,11 @@ class M4Protocol(Protocol):
 
     def send_legacy_packet(self, nt: bytes, func: M4Opcode, data: bytes):
         pkt = M4Packet()
-        pBuf = bytearray()
+        pBuf = bytearray(3 + len(data) + 2)
 
         pBuf[0] = self.FRAME_START
         pBuf[1] = nt if nt is not None else self.BROADCAST
-        pBuf[2] = func
+        pBuf[2] = func.value
 
         pBuf[3:3 + len(data)] = data
         pBuf[3 + len(data)] = Logika4.Checksum8(pBuf, 1, len(data) + 2)
@@ -464,7 +463,7 @@ class M4Protocol(Protocol):
             else:
                 nParam = mappedOrdinal
 
-        self.select_device_and_channel(mtr, nt, M4_MeterChannel(channel))
+        self.select_device_and_channel(mtr, nt, int(channel))
         if channel == 1 or channel == 2:
             nParam -= 50
 
@@ -510,7 +509,7 @@ class M4Protocol(Protocol):
         if mmd.sp is None:
             SP_741_ADDR = 0x200
             self.get_flash_pages_to_cache(Meter.SPG741, nt, SP_741_ADDR // Logika4L.FLASH_PAGE_SIZE, 1, mmd)
-            mmd.sp = int(Logika4L.get_value(Logika4L.BinaryType.dbentry, mmd.flash, SP_741_ADDR, False))
+            mmd.sp = int(Logika4L.get_value(BinaryType.dbentry, mmd.flash, SP_741_ADDR, False))
         return mmd.sp
 
     def read_ram(self, mtr: Logika4L, nt: bytes, start_addr: int, nBytes: int):
@@ -531,7 +530,7 @@ class M4Protocol(Protocol):
         self.select_device_and_channel(mtr, nt)
         cmdbuf: bytearray
 
-        retbuf: bytearray
+        retbuf: bytearray = bytearray(page_count * Logika4L.FLASH_PAGE_SIZE)
 
         for p in range((page_count + self.MAX_PAGE_BLOCK - 1) // self.MAX_PAGE_BLOCK):
             pages_to_req = page_count - p * self.MAX_PAGE_BLOCK
@@ -539,12 +538,12 @@ class M4Protocol(Protocol):
                 pages_to_req = self.MAX_PAGE_BLOCK
             page_block_start = start_page + p * self.MAX_PAGE_BLOCK
 
-            reqData = [bytearray(page_block_start & 0xFF), bytearray((page_block_start >> 8) & 0xFF), bytearray(pages_to_req), bytearray(0)]
+            reqData = bytearray([page_block_start & 0xFF, (page_block_start >> 8) & 0xFF, pages_to_req, 0])
             self.send_legacy_packet(nt, M4Opcode.ReadFlash, reqData)
 
             for i in range(pages_to_req):
                 try:
-                    pkt = self.recv_packet(nt, M4Opcode.ReadFlash, None, Logika4L.FLASH_PAGE_SIZE)
+                    pkt = self.recv_packet(nt, M4Opcode.ReadFlash, bytearray(), Logika4L.FLASH_PAGE_SIZE)
                 except:
                     if page_count > 1:
                         self.on_recoverable_error()
@@ -554,8 +553,9 @@ class M4Protocol(Protocol):
                     raise ECommException(ExcSeverity.Error, CommError.Unspecified,
                                          f"принят некорректный пакет, код функции 0x{pkt.FunctionCode:X2}")
 
-                retbuf[(p * self.MAX_PAGE_BLOCK + i) * Logika4L.FLASH_PAGE_SIZE:(
-                                                                                        p * self.MAX_PAGE_BLOCK + i + 1) * Logika4L.FLASH_PAGE_SIZE] = pkt.Data
+                start_index: int = (p * self.MAX_PAGE_BLOCK + i) * Logika4L.FLASH_PAGE_SIZE
+                end_index: int = start_index + Logika4L.FLASH_PAGE_SIZE
+                retbuf[start_index:end_index] = pkt.Data[0:Logika4L.FLASH_PAGE_SIZE]
 
         return retbuf
 
@@ -585,14 +585,14 @@ class M4Protocol(Protocol):
         buf[0] = self.FRAME_START
         buf[1] = nt if nt is not None else self.BROADCAST
         buf[2] = 0x90
-        buf[3] = packet_id
+        buf[3] = packet_id[0]
         buf[4] = 0x00
 
         payload_len = 1 + len(data)
         buf[5] = payload_len & 0xFF
         buf[6] = payload_len >> 8
 
-        buf[7] = opcode
+        buf[7] = opcode.value
         buf[8:] = data
 
         check = 0
@@ -623,7 +623,7 @@ class M4Protocol(Protocol):
         if m == Meter.SPG742 or m == Meter.SPT941_20:
             for i in range(len(ordinals)):
                 if ordinals[i] == 8256 and isinstance(oa[i], int):
-                    oa[i] = oa[i] & 0x00FFFFFF
+                    oa[i] = int(str(oa[i])) & 0x00FFFFFF
 
         return oa
 
@@ -631,16 +631,16 @@ class M4Protocol(Protocol):
         if not p.Extended or p.FunctionCode != M4Opcode.ReadTags:
             raise ValueError("некорректный пакет")
 
-        valuesList = []
-        opFlagsList = []
+        valuesList: List[object] = []
+        opFlagsList: List[bool] = []
 
         tp = 0
         while tp < len(p.Data):
             o = None
-            tag_len = Logika4M.ParseTag(p.Data, tp, o)
+            tag_len = Logika4M.parse_tag(p.Data, tp, o)
 
-            if isinstance(o, Logika4M.OperParamFlag):
-                opFlagsList[-1] = True if o == Logika4M.OperParamFlag.Yes else False
+            if isinstance(o, OperParamFlag):
+                opFlagsList[-1] = True if o == OperParamFlag.Yes else False
                 tp += tag_len
                 continue
 
@@ -650,6 +650,7 @@ class M4Protocol(Protocol):
             tp += tag_len
 
         self.op_flags.extend(opFlagsList)
+
         return valuesList
 
     @staticmethod
@@ -767,7 +768,7 @@ class M4Protocol(Protocol):
         if not p.Extended or p.FunctionCode != M4Opcode.ReadArchive:
             raise ValueError("некорректный пакет")
 
-        lr = []
+        lr: List[M4ArchiveRecord] = []
         self.next_record = datetime.min
 
         decompData = p.Data
