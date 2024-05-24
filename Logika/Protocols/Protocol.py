@@ -154,15 +154,16 @@ class Protocol(ABC):
 
     def detect_m4(self, bus: M4Protocol):
         model = ""
-        reply = bus.handshake(0xFF, 0, False)
+        reply = bus.handshake(bytes([0xFF]), bytearray([0]), False)
         dump = reply.getDump()
         mtr = Logika4.meter_type_from_response(reply.Data[0], reply.Data[1], reply.Data[2])
 
         if mtr == Meter.SPT942:
-            modelBytes = bus.read_flash_bytes(mtr as Logika4L, 0xFF, 0x30, 1)
+            mtr_4L = mtr.__class__ = Logika4L()
+            modelBytes = bus.read_flash_bytes(mtr_4L, bytes([0xFF]), 0x30, 1)
             model = chr(modelBytes[0])
 
-        return mtr
+        return mtr, dump, model
 
     def autodetect_spt_stable(self, conn, fixedBaudRate, tryM4, trySPBus, tryMEK):
         m = None
@@ -189,7 +190,7 @@ class Protocol(ABC):
 
                 if tryM4:
                     try:
-                        m = self.detect_m4(bus4)
+                        m, dump, model = self.detect_m4(bus4)
                         devBaudRate = detectedBaud
                         return m, dump, model
                     except Exception:
@@ -285,7 +286,8 @@ class Protocol(ABC):
                     if m == Meter.SPT942:
                         bus4 = M4Protocol()
                         bus4.connection = c
-                        modelBytes = bus4.read_flash_bytes(Logika4L(m), 0xFF, 0x30, 1)
+                        mtr_4L = m.__class__ = Logika4L()
+                        modelBytes = bus4.read_flash_bytes(mtr_4L, bytes(0xFF), 0x30, 1)
                         model = chr(modelBytes[0])
                     else:
                         model = ""
@@ -339,9 +341,9 @@ class Protocol(ABC):
                             time.sleep(0.1)
 
                         if tryM4:
-                            conn.Write(M4Protocol.WAKEUP_SEQUENCE, 0, len(M4Protocol.WAKEUP_SEQUENCE))
+                            conn.write(M4Protocol.WAKEUP_SEQUENCE, 0, len(M4Protocol.WAKEUP_SEQUENCE))
                             time.sleep(M4Protocol.WAKE_SESSION_DELAY)
-                            conn.Write(M4Request, 0, len(M4Request))
+                            conn.write(M4Request, 0, len(M4Request))
 
                         time.sleep(0.05)
                         m = Protocol.detect_response(conn)
@@ -399,7 +401,7 @@ class Protocol(ABC):
             return 15000  # Default case
 
     @staticmethod
-    def crc16(crc, buf, offset, length):
+    def crc16(crc, buf: bytearray, offset: int, length: int):
         while length > 0:
             crc ^= (buf[offset] << 8) & 0xFFFF
             for j in range(8):
@@ -409,4 +411,5 @@ class Protocol(ABC):
                     crc = (crc << 1) & 0xFFFF
             offset += 1
             length -= 1
+
         return crc

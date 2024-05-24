@@ -221,7 +221,7 @@ class FlashRingBuffer(FlashArray):
 
         return finished, restart_point
 
-    def manage_outdated_elements(self, use_index_cache: bool):
+    def manage_outdated_elements(self, use_index_cache: bool, new_indexes: List[int], currentIndex: int):
         outdatedList = []
         cdt = self.parentArchive.mi.current_device_time
         gT = 15
@@ -263,5 +263,6 @@ class FlashRingBuffer(FlashArray):
         self.prev_idx = currentIndex
         self.prevIdx_devTime = self.parentArchive.mi.current_device_time if not at_guard_interval else datetime.min
         self.ts_prev_idx = self.Times[currentIndex]
+        new_indexes = outdatedList
 
-        return outdatedList, currentIndex
+        return new_indexes, currentIndex

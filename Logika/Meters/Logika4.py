@@ -144,7 +144,7 @@ class Logika4(ABC, Meter):
         return bitNumbers
 
     @staticmethod
-    def bit_numbers_from_array(array: List[int], offset: int, nBits: int) -> List[int]:
+    def bit_numbers_from_array(array: bytearray, offset: int, nBits: int) -> List[int]:
         bitNumbers = [i for i in range(nBits) if array[offset + i // 8] & (1 << i % 8)]
 
         return bitNumbers

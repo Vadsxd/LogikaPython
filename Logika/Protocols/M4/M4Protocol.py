@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum, IntEnum
 from typing import List
 
@@ -771,13 +771,24 @@ class M4Protocol(Protocol):
         lr: List[M4ArchiveRecord] = []
         self.next_record = datetime.min
 
-        decompData = p.Data
-        tp = 0
-        while tp < len(decompData):
-            oTime = None
-            tp += Logika4M.parse_tag(decompData, tp, oTime)
+        zLen, oFirstTag = Logika4M.parse_tag(p.Data, 0)
+        decomp_data: bytearray = bytearray()
 
-            lenLen = Logika4M.get_tag_length(self, decompData, tp + 1)
+        if isinstance(oFirstTag, bytes):
+            tailLength = len(p.Data) - zLen
+            decompRecords = FLZ.decompress(oFirstTag, 0, len(oFirstTag))
+            decomp_data = bytearray(decompRecords) + p.Data[zLen:]
+        else:
+            decomp_data = p.Data
+
+        decomp_data = p.Data
+        tp = 0
+        sum_tp: int = 0
+        while tp < len(decomp_data):
+            tp, oTime = Logika4M.parse_tag(decomp_data, tp)
+            sum_tp += tp
+
+            lenLen = Logika4M.get_tag_length(decomp_data, sum_tp + 1)
             recLen = lenLen[1]
 
             if recLen == 0:
@@ -785,32 +796,32 @@ class M4Protocol(Protocol):
                 break
 
             r = M4ArchiveRecord()
-            r.interval_mark = datetime(oTime, tzinfo=datetime.timezone.utc)
+            r.interval_mark = datetime(oTime, tzinfo=timezone.utc)
 
-            if decompData[tp] == 0x30:
-                tp += 1 + lenLen[0]
+            if decomp_data[sum_tp] == 0x30:
+                sum_tp += 1 + lenLen[0]
 
-                st = tp
+                st = sum_tp
 
                 lo = []
-                while tp - st < recLen:
-                    o = None
-                    tp += Logika4M.parse_tag(decompData, tp, o)
+                while sum_tp - st < recLen:
+                    tp, o = Logika4M.parse_tag(decomp_data, sum_tp)
+                    sum_tp += tp
                     lo.append(o)
 
                 if isinstance(lo[0], str) and isinstance(lo[1], str) and len(lo[0]) == 8 and len(lo[1]) == 8:
                     ta = lo[0].split('-') + lo[0].split(':')
                     da = lo[1].split('-')
                     r.dt = datetime(2000 + int(da[2]), int(da[1]), int(da[0]), int(ta[0]), int(ta[1]),
-                                    int(ta[2]), tzinfo=datetime.timezone.utc)
+                                    int(ta[2]), tzinfo=timezone.utc)
                     lo = lo[2:]
                 else:
                     r.dt = datetime.min
 
                 r.values = lo
             else:
-                o = None
-                tp += Logika4M.ParseTag(decompData, tp, o)
+                tp, o = Logika4M.parse_tag(decomp_data, sum_tp)
+                sum_tp += tp
                 r.dt = r.interval_mark
                 r.values = [o]
 
@@ -1018,7 +1029,8 @@ class M4Protocol(Protocol):
             trs = state.ars[i]
             fa = trs.fArchive
             if trs.idx < 0:
-                fa.headers.manage_outdated_elements(True, new_headers, trs.idx)
+                new_headers: List[int] = []
+                trs.idx = fa.headers.manage_outdated_elements(True, new_headers, trs.idx)
 
             pct_hdr_read = 0
             if not trs.headersRead:
