@@ -132,9 +132,6 @@ class Meter(ABC):
     tagsLock = object()
     channels_table = None
 
-    metadata = sqlite3.connect('Logika/Resourses/Logika_database')
-    metadata.row_factory = sqlite3.Row
-
     @property
     @abstractmethod
     def measure_kind(self):
@@ -421,12 +418,17 @@ class Meter(ABC):
     @staticmethod
     def load_res_table(tableName: str) -> list:
         try:
+            metadata = sqlite3.connect('Logika/Resourses/Logika_database')
+            metadata.row_factory = sqlite3.Row
             res = []
-            cur = Meter.metadata.cursor()
+            cur = metadata.cursor()
             cur.execute(f'select * from {tableName}')
             rows = cur.fetchall()
+
             for row in rows:
                 res.append(dict(row))
+
+            cur.close()
             return res
         except sqlite3.Error as e:
             print(e)

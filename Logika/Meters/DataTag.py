@@ -3,23 +3,24 @@ from Logika.Meters.TagDef import DataTagDef6
 
 
 class DataTag(Tag):
-    def __init__(self, refTag, channelNo):
-        super().__init__(refTag, channelNo)
-        if isinstance(refTag, DataTagDef6):
-            self.addr = refTag.Address
-            if channelNo > 0:
-                self.addr += refTag.ChannelDef.Prefix + str(channelNo)
+    def __init__(self, refTag, channelNo, t=None):
+        if t:
+            super().__init__(vt=t)
+            self.Value = t.Value
+            self.EU = t.EU
+            self.Oper = t.Oper
+            self.addr = t.addr
+            self.Name = t.name
         else:
-            td = refTag
-            self.addr = (td.ChannelDef.Prefix + str(channelNo) + "_" if channelNo > 0 else "") + td.name
+            super().__init__(refTag, channelNo)
+            if isinstance(refTag, DataTagDef6):
+                self.addr = refTag.Address
+                if channelNo > 0:
+                    self.addr += refTag.ChannelDef.Prefix + str(channelNo)
+            else:
+                td = refTag
+                self.addr = (td.ChannelDef.Prefix + str(channelNo) + "_" if channelNo > 0 else "") + td.name
 
-    def __init__(self, t: Tag):
-        super().__init__(t)
-        self.Value = t.Value
-        self.EU = t.EU
-        self.Oper = t.Oper
-        self.addr = t.addr
-        self.Name = t.name
 
     @property
     def Index(self):

@@ -1,19 +1,18 @@
-from Logika.Meters.TagDef import TagDef
 from Logika.Meters.Channel import Channel
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Logika6 import Logika6
 
 
 class Tag:
-    def __init__(self, refTag: TagDef, channelNo: int):
-        self.deffinition = refTag
-        if channelNo < refTag.ChannelDef.Start or channelNo >= refTag.ChannelDef.Start + refTag.ChannelDef.Count:
-            raise ValueError("некорректный номер канала")
-        self.channel = Channel(refTag.ChannelDef, channelNo)
-
-    def __init__(self, vt):
-        self.deffinition = vt.deffinition
-        self.channel = vt.Channel
+    def __init__(self, refTag=None, channelNo=None, vt=None):
+        if refTag and channelNo:
+            self.deffinition = refTag
+            if channelNo < refTag.ChannelDef.Start or channelNo >= refTag.ChannelDef.Start + refTag.ChannelDef.Count:
+                raise ValueError("некорректный номер канала")
+            self.channel = Channel(refTag.ChannelDef, channelNo)
+        elif vt:
+            self.deffinition = vt.deffinition
+            self.channel = vt.Channel
 
     @property
     def name(self):

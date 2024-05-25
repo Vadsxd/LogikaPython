@@ -12,28 +12,23 @@ class Archive:
 
 
 class IntervalArchive(Archive):
-    def __init__(self, mtr: Meter, arType: ArchiveType):
+    def __init__(self, mtr: Meter, arType: ArchiveType, template: DataTable = None):
         super().__init__(mtr, arType)
 
         if not arType.is_interval_archive:
             raise ValueError("wrong archive type")
 
-        self.Table = DataTable("{0}-{1}".format(type(mtr).__name__, arType.Name))
-        dt_tc = self.Table.Columns.Add("tm", datetime)
-        self.Table.PrimaryKey = [dt_tc]
-        self.Fields = ArchiveFieldCollection(self)
-
-    def __init__(self, mtr: Meter, arType: ArchiveType, template: DataTable):
-        self.__init__(mtr, arType)
-
-        if not arType.is_interval_archive:
-            raise ValueError("wrong archive type")
-
-        for c in template.Columns:
-            if c.ColumnName.lower() != "tm":
-                newCol = self.Table.Columns.Add(c.ColumnName, c.DataType)
-                for k in c.ExtendedProperties.Keys:
-                    newCol.ExtendedProperties[k] = c.ExtendedProperties[k]
+        if template:
+            for c in template.Columns:
+                if c.ColumnName.lower() != "tm":
+                    newCol = self.Table.Columns.Add(c.ColumnName, c.DataType)
+                    for k in c.ExtendedProperties.Keys:
+                        newCol.ExtendedProperties[k] = c.ExtendedProperties[k]
+        else:
+            self.Table = DataTable("{0}-{1}".format(type(mtr).__name__, arType.Name))
+            dt_tc = self.Table.Columns.Add("tm", datetime)
+            self.Table.PrimaryKey = [dt_tc]
+            self.Fields = ArchiveFieldCollection(self)
 
 
 class ArchiveFieldCollection:

@@ -1,5 +1,8 @@
+from Logika.Meters.Channel import ChannelDef
+
+
 class ItemDefBase:
-    def __init__(self, channelDef, ordinal, name, description, elementType):
+    def __init__(self, channelDef: ChannelDef, ordinal: int, name: str, description: str, elementType):
         self.ChannelDef = channelDef
         self.Ordinal = ordinal
         self.Name = name
@@ -8,4 +11,4 @@ class ItemDefBase:
 
     @property
     def meter(self):
-        return self.ChannelDef.meter
+        return self.ChannelDef.Meter

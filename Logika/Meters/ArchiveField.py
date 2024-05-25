@@ -3,15 +3,15 @@ from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef6
 
 
 class ArchiveField(Tag):
-    def __init__(self, rt, channelNo):
-        super().__init__(rt, channelNo)
-        self.Caption = None
-        self.archiveOrd = None
-
-    def __init__(self, vt):
-        super().__init__(vt)
-        self.Caption = vt.caption
-        self.EU = vt.EU
+    def __init__(self, rt, channelNo, vt=None):
+        if vt:
+            super().__init__(vt=vt)
+            self.Caption = vt.caption
+            self.EU = vt.EU
+        else:
+            super().__init__(rt, channelNo)
+            self.Caption = None
+            self.archiveOrd = None
 
     @property
     def ArchiveType(self):
