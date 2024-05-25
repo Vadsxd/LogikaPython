@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List, Dict
 
-from Logika.Meters.Channel import ChannelKind
+from Logika.Meters.Channel import ChannelKind, ChannelDef
+from Logika.Meters.DataTag import DataTag
 from Logika.Meters.Meter import Meter
 from Logika.Meters.StandardVars import StdVar
 from Logika.Meters.TagDef import TagDef
@@ -34,7 +35,7 @@ class Logika4(ABC, Meter):
         return self.nsDescs[ns_number]
 
     @staticmethod
-    def display_ns(value) -> str:
+    def display_ns(value: object) -> str:
         separator = ","
         sb = []
 
@@ -94,11 +95,11 @@ class Logika4(ABC, Meter):
     def bus_type(self) -> BusProtocolType:
         return BusProtocolType.RSbus
 
-    def get_event_prefix_for_tv(self, TVnum: int) -> str:
+    def get_event_prefix_for_tv(self, tv_num: int) -> str:
         if self.MaxGroups == 1:
             return ""
         else:
-            return f"ТВ{TVnum} "
+            return f"ТВ{tv_num} "
 
     @staticmethod
     def advance_read_ptr(archiveType: ArchiveType, time: datetime) -> datetime:
@@ -208,13 +209,13 @@ class Logika4(ABC, Meter):
         pass
 
     @abstractmethod
-    def build_eu_dict(self, eu_tags):
+    def build_eu_dict(self, eu_tags: List[DataTag]) -> Dict[str, str]:
         pass
 
 
 class CalcFieldDef:
-    def __init__(self, channel, channel_no, ordinal, name, std_var, desc, data_type, db_type, display_format,
-                 insert_after, expression, eu):
+    def __init__(self, channel: ChannelDef, channel_no: int, ordinal: int, name: str, std_var: StdVar, desc: str,
+                 data_type, db_type: str, display_format: str, insert_after: str, expression: str, eu: str):
         self.channel_no = channel_no
         self.insert_after = insert_after
         self.expression = expression
@@ -225,5 +226,5 @@ class CalcFieldDef:
         raise NotImplementedError
 
     @staticmethod
-    def get_calculated_fields():
+    def get_calculated_fields() -> List:
         return []

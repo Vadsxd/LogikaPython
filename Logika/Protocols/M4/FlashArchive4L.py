@@ -34,7 +34,7 @@ class FlashArchive4:
         self.mi = mi
         self.deffinition = arDef
         idxAddr = self.deffinition.IndexAddr2 if channelNo == 2 else self.deffinition.IndexAddr
-        if arDef.ArchiveType.IsIntervalArchive:
+        if arDef.archive_type.IsIntervalArchive:
             dataAddr = self.deffinition.HeadersAddr2 if channelNo == 2 else self.deffinition.HeadersAddr
         else:
             dataAddr = self.deffinition.RecordsAddr2 if channelNo == 2 else self.deffinition.RecordsAddr
@@ -46,7 +46,7 @@ class FlashArchive4:
 
     @property
     def ArchiveType(self):
-        return self.deffinition.ArchiveType
+        return self.deffinition.archive_type
 
     def reset(self):
         self.headers.reset()
@@ -76,7 +76,7 @@ class SyncFlashArchive4(FlashArchive4):
         self.data = FlashArray(mi, arDef.RecordsAddr2 if channelNo == 2 else arDef.RecordsAddr, arDef.Capacity, arDef.RecordSize)
         self.RD = int(mi.rd)
         self.RH = int(mi.rh)
-        self.fields = [x for x in mi.mtr.ArchiveFields if x.ArchiveType == arDef.ArchiveType]
+        self.fields = [x for x in mi.mtr.ArchiveFields if x.archive_type == arDef.archive_type]
 
     @property
     def RH(self):

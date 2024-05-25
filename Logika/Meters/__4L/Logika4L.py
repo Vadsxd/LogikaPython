@@ -308,7 +308,7 @@ class Logika4L(ABC, Logika4):
     def read_archive_field_def(self, r):
         r = dict(r)
         art = ArchiveType.from_string(r["archive_type"])
-        ra = next((x for x in self.archives if x.ArchiveType == art), None)
+        ra = next((x for x in self.archives if x.archive_type == art), None)
         sDataType = "System." + r["data_type"]
         t = type(sDataType)
         sDbType = str(r["db_type"])

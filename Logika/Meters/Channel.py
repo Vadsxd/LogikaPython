@@ -1,4 +1,5 @@
 from enum import Enum
+from Meter import Meter
 
 
 class ChannelKind(Enum):
@@ -13,7 +14,7 @@ class ChannelKind(Enum):
 class ChannelDef:
     Prefix = None
 
-    def __init__(self, Meter, Prefix: str, Start: int, Count: int, Description: str, a: 'ChannelDef' = None):
+    def __init__(self, meter: Meter, Prefix: str, Start: int, Count: int, Description: str, a: 'ChannelDef' = None):
         if a:
             self.Meter = a.Meter
             self.Kind = a.Kind
@@ -22,8 +23,8 @@ class ChannelDef:
             self.Count = a.Count
             self.Description = a.Description
         else:
-            self.Meter = Meter
-            self.Kind = Meter.get_channel_kind(Start, Count, Prefix)
+            self.Meter = meter
+            self.Kind = meter.get_channel_kind(Start, Count, Prefix)
             self.Prefix = Prefix
             self.Start = Start
             self.Count = Count
@@ -34,8 +35,8 @@ class ChannelDef:
 
 
 class Channel(ChannelDef):
-    def __init__(self, cdef, channelNo):
-        super().__init__(None, '', 0, 0, '', cdef)
+    def __init__(self, cdef: 'ChannelDef', channelNo: int):
+        super().__init__(Meter(), '', 0, 0, '', cdef)
         self.No = channelNo
         self.Name = cdef.Prefix + (str(channelNo) if channelNo > 0 else "")
 

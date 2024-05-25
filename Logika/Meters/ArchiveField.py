@@ -1,9 +1,9 @@
 from Logika.Meters import Tag
-from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef6
+from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef6, ArchiveFieldDef
 
 
 class ArchiveField(Tag):
-    def __init__(self, rt, channelNo, vt=None):
+    def __init__(self, rt: ArchiveFieldDef, channelNo: int, vt: 'ArchiveField' = None):
         if vt:
             super().__init__(vt=vt)
             self.Caption = vt.caption
@@ -14,15 +14,16 @@ class ArchiveField(Tag):
             self.archiveOrd = None
 
     @property
-    def ArchiveType(self):
-        return self.deffinition.ArchiveType
+    def archive_type(self):
+        # TODO: не работает deffinition, Channel
+        return self.deffinition.archive_type
 
     @property
-    def DisplayFormat(self):
-        return self.deffinition.DisplayFormat
+    def display_format(self):
+        return self.deffinition.display_format
 
     @property
-    def Address(self):
+    def address(self):
         if isinstance(self.deffinition, ArchiveFieldDef6):
             return self.deffinition.address
         else:

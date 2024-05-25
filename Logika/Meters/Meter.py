@@ -1,6 +1,7 @@
 import sqlite3
 import threading
 from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -9,8 +10,8 @@ from Logika.Meters.ArchiveFieldDef import ArchiveFieldDef
 from Logika.Meters.Channel import ChannelKind, ChannelDef
 from Logika.Meters.DataTag import DataTag
 from Logika.Meters.StandardVars import StdVar
-from Logika.Meters.TagDef import DataTagDef
-from Logika.Meters.Types import ImportantTag, TagKind
+from Logika.Meters.TagDef import DataTagDef, TagDef
+from Logika.Meters.Types import ImportantTag, TagKind, ArchiveType
 from Logika.Meters.__4L.SPG741 import TSPG741
 from Logika.Meters.__4L.SPT941 import TSPT941
 from Logika.Meters.__4L.SPT941_10 import TSPT941_10
@@ -73,17 +74,17 @@ class MeterType(Enum):
 
 
 class TagVault:
-    def __init__(self, tags):
+    def __init__(self, tags: List[DataTagDef]):
         self.ref_tags = tags
         self.tag_key_dict = {}
         for t in tags:
-            self.tag_key_dict[(t.ChannelDef.Prefix, Conversions.rus_string_to_stable_alphabet(t.key))] = t
+            self.tag_key_dict[(t.ChannelDef.Prefix, Conversions.rus_string_to_stable_alphabet(t.Key))] = t
 
-    def find(self, channel_kind, key):
+    def find(self, channel_kind: str, key: str):
         return self.tag_key_dict.get((channel_kind, Conversions.rus_string_to_stable_alphabet(key)))
 
     @property
-    def all(self):
+    def all(self) -> List[DataTagDef]:
         return self.ref_tags
 
 
@@ -263,11 +264,11 @@ class Meter(ABC):
         return dta
 
     @abstractmethod
-    def advance_read_ptr(self, archiveType, time):
+    def advance_read_ptr(self, archiveType: ArchiveType, time: datetime):
         pass
 
     @abstractmethod
-    def get_display_format(self, fi):
+    def get_display_format(self, fi: TagDef):
         pass
 
     @property
@@ -277,7 +278,7 @@ class Meter(ABC):
                 self.load_metadata()
             return self._archives
 
-    def has_archive(self, at):
+    def has_archive(self, at: ArchiveType):
         return any(x.ArchiveType == at for x in self.archives)
 
     @property
@@ -287,7 +288,7 @@ class Meter(ABC):
                 self.load_metadata()
             return self.ref_archive_fields
 
-    def find_archive_field_def(self, archiveType, ordinal):
+    def find_archive_field_def(self, archiveType: ArchiveType, ordinal: int):
         raise Exception("no ordinal anymore")
 
     @property

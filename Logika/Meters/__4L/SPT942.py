@@ -146,9 +146,9 @@ class TSPT942(Logika4L):
     def read_archive_defs(self, rows) -> List[ArchiveDef]:
         la = Logika4L.read_archive_defs(self, rows)
 
-        ah = next((x for x in la if x.ArchiveType == ArchiveType.Hour), None)
-        ad = next((x for x in la if x.ArchiveType == ArchiveType.Day), None)
-        am = next((x for x in la if x.ArchiveType == ArchiveType.Month), None)
+        ah = next((x for x in la if x.archive_type == ArchiveType.Hour), None)
+        ad = next((x for x in la if x.archive_type == ArchiveType.Day), None)
+        am = next((x for x in la if x.archive_type == ArchiveType.Month), None)
 
         m46tv2 = next((x for x in self.Channels if x.Start == 1 and x.Count == 1), None)
 

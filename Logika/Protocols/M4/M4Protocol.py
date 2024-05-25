@@ -162,6 +162,11 @@ class M4Protocol(Protocol):
     MAX_TAGS_AT_ONCE = 24
     PARTITION_CURRENT = 0xFFFF
     ALT_SPEED_FALLBACK_TIME = 10000
+    WAKEUP_SEQUENCE: bytearray = bytearray(
+        [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+         0xFF,
+         0xFF])
+    WAKE_SESSION_DELAY: int = 100
 
     MAX_PAGE_BLOCK = 8
 
@@ -170,9 +175,6 @@ class M4Protocol(Protocol):
         self.activeDev = None
         self.initialBaudRate = None
         self.suggestedBaudrate = targetBaudrate
-        self.WAKEUP_SEQUENCE = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                0xFF,
-                                0xFF]
         self.metadataCache = None
         self.CHANNEL_NBASE = 10000
         self.id_ctr: int = 0
@@ -457,7 +459,7 @@ class M4Protocol(Protocol):
         if isinstance(mtr, TSPG741) and 200 <= nParam < 300:
             td = Meter.SPG741.Tags.All.SingleOrDefault(lambda x: x.Ordinal == nParam)
             sp = self.get741sp(nt)
-            mappedOrdinal = TSPG741.GetMappedDBParamOrdinal(td.Key, sp)
+            mappedOrdinal = TSPG741.GetMappedDBParamOrdinal(td.key, sp)
             if mappedOrdinal is None:
                 return None
             else:
@@ -869,7 +871,7 @@ class M4Protocol(Protocol):
     def get4L_real_addr(self, mi: MeterInstance, t: DataTag):
         deffinition = t.deffinition
         if mi.mtr == Meter.SPG741 and 200 <= deffinition.Ordinal < 300:
-            return TSPG741.get_mapped_db_param_addr(mi.mtr, deffinition.Key, self.get741sp(mi.nt))
+            return TSPG741.get_mapped_db_param_addr(mi.mtr, deffinition.key, self.get741sp(mi.nt))
         else:
             return deffinition.address + (deffinition.channelOffset if t.Channel.No == 2 else 0)
 
@@ -965,11 +967,11 @@ class M4Protocol(Protocol):
 
         if m == Meter.SPT942:
             tiny42 = mi.Model == "4" or mi.Model == "6"
-            ard = next(x for x in m.Archives if x.ArchiveType == ar_type and x.poorMans942 == tiny42)
+            ard = next(x for x in m.Archives if x.archive_type == ar_type and x.poorMans942 == tiny42)
         else:
-            ard = next(x for x in m.Archives if x.ArchiveType == ar_type)
+            ard = next(x for x in m.Archives if x.archive_type == ar_type)
 
-        field_defs = [x for x in m.ArchiveFields if x.ArchiveType == ar_type]
+        field_defs = [x for x in m.ArchiveFields if x.archive_type == ar_type]
 
         ch_start = ard.ChannelDef.Start
         ch_end = ch_start + ard.ChannelDef.Count - 1
@@ -1103,7 +1105,7 @@ class M4Protocol(Protocol):
                 if hdp is not None:
                     evt = str(hdp.Value)
                     desc = None
-                    if trs.fArchive.ArchiveType == ArchiveType.ErrorsLog:
+                    if trs.fArchive.archive_type == ArchiveType.ErrorsLog:
                         desc = svcArchive.Meter.GetNSDescription(evt)
 
                     if len(state.ars) > 1:  # devices with two TV
@@ -1114,7 +1116,7 @@ class M4Protocol(Protocol):
 
     def init_4L_service_archive_read_state(self, m: Logika4L, nt: bytes, arType: ArchiveType):
         mi = self.get_meter_instance(m, nt)
-        ard = next(x for x in m.Archives if x.ArchiveType == arType)
+        ard = next(x for x in m.Archives if x.archive_type == arType)
         tvsa = [Logika4LTVReadState() for _ in range(ard.ChannelDef.Count)]
 
         record_getter = None
@@ -1238,7 +1240,7 @@ class M4Protocol(Protocol):
             raise Exception("unsupported archive type")
 
         m4m = m if isinstance(m, Logika4M) else None
-        ard = next((x for x in m.Archives if x.ArchiveType == ar.ArchiveType), None)
+        ard = next((x for x in m.Archives if x.archive_type == ar.ArchiveType), None)
         if ard is None:
             raise ValueError("Archive definition not found")
 

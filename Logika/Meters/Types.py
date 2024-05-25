@@ -65,14 +65,14 @@ class ArchiveType:
         ArchiveType.atDict[name] = self
 
     @property
-    def is_interval_archive(self):
+    def is_interval_archive(self) -> bool:
         return self.Timing == ArchiveTimingType.Synchronous
 
     @property
-    def is_service_archive(self):
+    def is_service_archive(self) -> bool:
         return self.Timing == ArchiveTimingType.Asynchronous
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.Name
 
     @staticmethod

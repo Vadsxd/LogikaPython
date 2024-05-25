@@ -64,6 +64,7 @@ class Logika6(ABC, Meter):
 
         if self.measure_kind == MeasureKind.T:
             ct_dict[ImportantTag.ParamsCSum] = "054н06"
+
         return ct_dict
 
     @staticmethod
@@ -94,6 +95,7 @@ class Logika6(ABC, Meter):
             return None
 
     def get_mdb_map(self, kind):
+        # TODO: нужно ли это вообще?
         fname = "mdb_{0}_ords".format(kind)
         fi = getattr(type(self), fname)
 
@@ -144,7 +146,7 @@ class Logika6(ABC, Meter):
             year += 1900
         return year
 
-    def time_string_to_datetime(self, spt_date_time) -> datetime:
+    def time_string_to_datetime(self, spt_date_time: str) -> datetime:
         dt = spt_date_time.split("/", 1)
         df = dt[0].split("-", 2)
         tf = dt[1].split(":", 2)
@@ -154,7 +156,8 @@ class Logika6(ABC, Meter):
         return datetime(year, int(df[1]), int(df[0]), int(tf[0]), int(tf[1]), int(tf[2]))
 
     @staticmethod
-    def get_channel_kind(ordinal, channel_start=None, channel_count=None, channel_name=None) -> str:
+    def get_channel_kind(ordinal: int, channel_start: int = None, channel_count: int = None,
+                         channel_name: str = None) -> str:
         if ordinal is None:
             if channel_start == 0 and channel_count == 1:
                 return "Common"

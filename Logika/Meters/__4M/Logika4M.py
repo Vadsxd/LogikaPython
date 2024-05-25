@@ -188,7 +188,7 @@ class Logika4M(ABC, Logika4):
     def read_archive_field_def(self, r):
         r = dict(r)
         art = ArchiveType.from_string(str(r["archive_type"]))
-        ra = next((x for x in self.archives if x.ArchiveType == art), None)
+        ra = next((x for x in self.archives if x.archive_type == art), None)
 
         idx = int(r["index"])
         t = type("System." + str(r["data_type"]))

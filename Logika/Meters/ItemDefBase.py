@@ -2,7 +2,7 @@ from Logika.Meters.Channel import ChannelDef
 
 
 class ItemDefBase:
-    def __init__(self, channelDef: ChannelDef, ordinal: int, name: str, description: str, elementType):
+    def __init__(self, channelDef: ChannelDef, ordinal: int, name: str, description: str, elementType: type):
         self.ChannelDef = channelDef
         self.Ordinal = ordinal
         self.Name = name

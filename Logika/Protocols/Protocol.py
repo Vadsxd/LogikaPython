@@ -5,14 +5,14 @@ from datetime import datetime
 from enum import Enum
 from typing import List
 
-from Logika.Connections.Connection import ConnectionState, ConnectionType, PurgeFlags
+from Logika.Connections.Connection import ConnectionState, ConnectionType, PurgeFlags, Connection
 from Logika.Connections.SerialConnection import StopBits, Parity, SerialConnection, BaudRate
 from Logika.ECommException import ECommException, CommError, ExcSeverity
 from Logika.Meters.Archive import IntervalArchive
 from Logika.Meters.DataTag import DataTag
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Meter import Meter
-from Logika.Meters.Types import BusProtocolType
+from Logika.Meters.Types import BusProtocolType, ArchiveType
 from Logika.Protocols.M4.ErrorCode import ErrorCode
 from Logika.Protocols.M4.M4Opcode import M4Opcode
 from Logika.Protocols.M4.M4Protocol import M4Protocol
@@ -48,15 +48,15 @@ class Protocol(ABC):
         pass
 
     @abstractmethod
-    def internal_close_comm_session(self, src_nt, dst_nt):
+    def internal_close_comm_session(self, src_nt: bytes, dst_nt: bytes):
         pass
 
     @abstractmethod
-    def get_meter_type(self, src_nt, dst_nt) -> Meter:
+    def get_meter_type(self, src_nt: bytes, dst_nt: bytes) -> Meter:
         pass
 
     @abstractmethod
-    def get_device_clock(self, meter: Meter, src, dst) -> datetime:
+    def get_device_clock(self, meter: Meter, src: bytes, dst: bytes) -> datetime:
         pass
 
     @abstractmethod
@@ -64,15 +64,18 @@ class Protocol(ABC):
         pass
 
     @abstractmethod
-    def read_interval_archive_def(self, m, src, dst, ar_type) -> IntervalArchive:
+    def read_interval_archive_def(self, m: Meter, src_nt: bytes, dst_nt: bytes,
+                                  ar_type: ArchiveType) -> IntervalArchive:
         pass
 
     @abstractmethod
-    def read_interval_archive(self, m, src, dst, ar, start: datetime, end: datetime) -> bool:
+    def read_interval_archive(self, m: Meter, src_nt: bytes, nt: bytes, ar: IntervalArchive, start: datetime,
+                              end: datetime) -> bool:
         pass
 
     @abstractmethod
-    def read_service_archive(self, m, src, dst, ar, start: datetime, end: datetime) -> bool:
+    def read_service_archive(self, m: Meter, src: bytes, dst: bytes, ar: IntervalArchive, start: datetime,
+                             end: datetime) -> bool:
         pass
 
     @property
@@ -116,7 +119,7 @@ class Protocol(ABC):
         except:
             pass
 
-    def close_comm_session(self, src_nt, dst_nt):
+    def close_comm_session(self, src_nt: bytes, dst_nt: bytes):
         try:
             if self.connection is not None and self.connection.state == ConnectionState.Connected:
                 self.internal_close_comm_session(src_nt, dst_nt)
@@ -130,7 +133,7 @@ class Protocol(ABC):
         except:
             pass
 
-    def wait_for(self, duration):
+    def wait_for(self, duration: int):
         with self.waitMtx_:
             return not self.waitCond_.wait(timeout=duration / 1000)
 
@@ -165,7 +168,8 @@ class Protocol(ABC):
 
         return mtr, dump, model
 
-    def autodetect_spt_stable(self, conn, fixedBaudRate, tryM4, trySPBus, tryMEK):
+    def autodetect_spt_stable(self, conn: Connection, fixedBaudRate: BaudRate, tryM4: bool, trySPBus: bool,
+                              tryMEK: bool):
         m = None
         model = ""
         bus4 = M4Protocol()
@@ -184,6 +188,7 @@ class Protocol(ABC):
 
             for baudRate in baudRateList:
                 if canChangeBaudrate:
+                    # TODO: сделать каст на SerialConnection
                     conn.set_params(baudRate, 8, StopBits.One, Parity.Zero)
                     detectedBaud = baudRate
                     print(f"trying {detectedBaud} bps...")
@@ -222,7 +227,7 @@ class Protocol(ABC):
         return None, dump, model
 
     @staticmethod
-    def detect_response(c):
+    def detect_response(c: Connection):
         rxDetected = False
         dump = None
         model = None
@@ -232,7 +237,7 @@ class Protocol(ABC):
         try:
             while True:
                 while True:
-                    c.readinto(buf, 1)
+                    c.read(buf, 0, 1)
                     rxDetected = True
                     if buf[0] == 0x10:
                         break
@@ -241,7 +246,7 @@ class Protocol(ABC):
                     if Elapsed.total_seconds() * 1000 > c.read_timeout:
                         raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
-                c.readinto(buf, 1, 5)
+                c.read(buf, 1, 5)
 
                 if buf[2] == M4Opcode.Error and buf[3] == ErrorCode.BadRequest and buf[5] == M4Protocol.FRAME_END:
                     continue
@@ -251,7 +256,7 @@ class Protocol(ABC):
                     iETX = -1
 
                     while True:
-                        c.readinto(buf, p, 1)
+                        c.read(buf, p, 1)
                         p += 1
                         if iETX == -1:
                             iETX = SPBus.SPBusPacket.findMarker(buf, 2, p, 0x10, 0x03)
@@ -274,7 +279,7 @@ class Protocol(ABC):
                     return SPBusProtocol.MeterTypeFromResponse(p099, model)
 
                 elif buf[2] == M4Opcode.Handshake:
-                    c.readinto(buf, 6, 2)
+                    c.read(buf, 6, 2)
                     cs = buf[6]
                     calculatedCheck = ~Logika4.Checksum8(buf, 1, 5) & 0xFF
 
@@ -304,7 +309,8 @@ class Protocol(ABC):
         return None
 
     @staticmethod
-    def autodetect_spt(conn, fixedBaudRate, waitTimeout, tryM4, trySPBus, tryMEK, srcAddr, dstAddr):
+    def autodetect_spt(conn: Connection, fixedBaudRate: BaudRate, waitTimeout: int, tryM4: bool, trySPBus: bool,
+                       tryMEK: bool, srcAddr: bytearray, dstAddr: bytearray):
         m = None
         model = ""
 
@@ -380,7 +386,7 @@ class Protocol(ABC):
             return None
 
     @staticmethod
-    def get_default_timeout(proto, connType):
+    def get_default_timeout(proto: BusProtocolType, connType: ConnectionType):
         if connType == ConnectionType.Offline or connType == ConnectionType.Serial:
             if proto == BusProtocolType.SPbus:
                 return 15000

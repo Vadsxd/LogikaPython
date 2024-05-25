@@ -114,7 +114,7 @@ class FlashArray:
     def update_element_explicit(self, element: int):
         self.update_pages(self.start_page(element), self.end_page(element))
 
-    def extend_page_range(self, page: int):
+    def extend_page_range(self, page: int) -> bool:
         if self.start_page == -1 or self.end_page == -1:
             self.start_page_elem = self.end_page_elem = page
             return True
@@ -166,7 +166,8 @@ class FlashRingBuffer(FlashArray):
         self.ts_prev_idx = None
         self.prevIdx_devTime = datetime.min
 
-    def get_element_indexes_in_range(self, initial_time: datetime, stop_time: datetime, last_written_index: int, restart_point: int, indexes: List[FRBIndex]):
+    def get_element_indexes_in_range(self, initial_time: datetime, stop_time: datetime, last_written_index: int,
+                                     restart_point: int, indexes: List[FRBIndex]) -> tuple[bool, int]:
         if restart_point < 0:
             restart_point = last_written_index
 
@@ -221,7 +222,8 @@ class FlashRingBuffer(FlashArray):
 
         return finished, restart_point
 
-    def manage_outdated_elements(self, use_index_cache: bool, new_indexes: List[int], currentIndex: int):
+    def manage_outdated_elements(self, use_index_cache: bool, new_indexes: List[int],
+                                 currentIndex: int) -> tuple[list[int], int]:
         outdatedList = []
         cdt = self.parentArchive.mi.current_device_time
         gT = 15
