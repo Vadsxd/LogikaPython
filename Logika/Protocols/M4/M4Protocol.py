@@ -6,6 +6,7 @@ from typing import List
 from Logika.Connections.Connection import PurgeFlags
 from Logika.Connections.SerialConnection import BaudRate, SerialConnection
 from Logika.ECommException import ECommException, CommError, ExcSeverity
+from Logika.FLZ import FLZ
 from Logika.LogLevel import LogLevel
 from Logika.Meters.Archive import IntervalArchive, ServiceArchive, ServiceRecord, Archive
 from Logika.Meters.ArchiveDef import ArchiveDef4L
@@ -180,11 +181,8 @@ class M4Protocol(Protocol):
         self.id_ctr: int = 0
         self.extra_data: object = None
         self.op_flags: List[bool] = []
-        self.next_record: datetime = datetime.now()
         self.state = None
         self.progress = None
-        self.result: List[M4ArchiveRecord] = []
-        self.next_ptr: datetime = datetime.now()
 
     def reset_internal_bus_state(self):
         self.activeDev = None
@@ -302,8 +300,8 @@ class M4Protocol(Protocol):
 
     def recv_packet(self, expected_nt: bytes, expected_opcode: M4Opcode, expected_id: bytearray, expectedDataLength: int,
                     flags: RecvFlags=0):
-        buf = [0] * 8
-        check = [0] * 2
+        buf = bytearray(8)
+        check = bytearray(2)
         p = M4Packet()
         try:
             while True:
@@ -353,9 +351,9 @@ class M4Protocol(Protocol):
                 else:
                     p.Extended = False
                     if p.FunctionCode == M4Opcode.Error:
-                        p.Data = [0]
+                        p.Data = bytearray(1)
                     else:
-                        p.Data = [0] * expectedDataLength
+                        p.Data = bytearray(expectedDataLength)
 
                 self.connection.read(p.Data, 0, len(p.Data))
                 self.connection.read(check, 0, 2)
@@ -380,7 +378,7 @@ class M4Protocol(Protocol):
             Protocol.crc16(calculatedCheck, p.Data, 0, len(p.Data))
         else:
             calculatedCheck = 0x1600
-            calculatedCheck |= (~Logika4.Checksum8(buf, 1, 2) + ~Logika4.Checksum8(p.Data, 0, len(p.Data)))
+            calculatedCheck |= (~Logika4.checksum8(buf, 1, 2) + ~Logika4.checksum8(p.Data, 0, len(p.Data)))
 
         if p.Check != calculatedCheck:
             self.report_proto_event(ProtoEvent.rxCrcError)
@@ -629,7 +627,7 @@ class M4Protocol(Protocol):
 
         return oa
 
-    def parse_m4_tags_packet(self, p: M4Packet):
+    def parse_m4_tags_packet(self, p: M4Packet) -> List[object]:
         if not p.Extended or p.FunctionCode != M4Opcode.ReadTags:
             raise ValueError("некорректный пакет")
 
@@ -638,8 +636,7 @@ class M4Protocol(Protocol):
 
         tp = 0
         while tp < len(p.Data):
-            o = None
-            tag_len = Logika4M.parse_tag(p.Data, tp, o)
+            tag_len, o = Logika4M.parse_tag(p.Data, tp)
 
             if isinstance(o, OperParamFlag):
                 opFlagsList[-1] = True if o == OperParamFlag.Yes else False
@@ -744,9 +741,11 @@ class M4Protocol(Protocol):
         from_dt = self.restrict_time(from_dt)
         to_dt = self.restrict_time(to_dt)
         if to_dt != datetime.min and from_dt > to_dt:
-            self.result = M4ArchiveRecord()
-            self.next_record = datetime.min
-            raise ValueError("протокол M4 не поддерживает чтение в обратном порядке")
+            self.log(LogLevel.Warn, f"протокол M4 не поддерживает чтение в обратном порядке, запрос [{from_dt} .. {to_dt}]")
+            result = M4ArchiveRecord()
+            next_record = datetime.min
+            return None, result, next_record
+
 
         lb: bytearray = bytearray([0x04, 0x05, partition & 0xFF, partition >> 8, channel, archiveKind])
         if mtr.SupportsFLZ:
@@ -762,28 +761,28 @@ class M4Protocol(Protocol):
         p = self.do_m4_request(nt, M4Opcode.ReadArchive, lb, pktId)
         lb.clear()
 
-        self.result = self.parse_archive_packet(p)
+        result, next_record = self.parse_archive_packet(p)
+        self.log(LogLevel.Trace, f"M4 ответ: {len(result)} записей, указатель:{next_record}")
 
-        return p
+        return p, result, next_record
 
-    def parse_archive_packet(self, p: M4Packet):
+    @staticmethod
+    def parse_archive_packet(p: M4Packet):
         if not p.Extended or p.FunctionCode != M4Opcode.ReadArchive:
             raise ValueError("некорректный пакет")
 
         lr: List[M4ArchiveRecord] = []
-        self.next_record = datetime.min
+        next_record: datetime = datetime.min
 
         zLen, oFirstTag = Logika4M.parse_tag(p.Data, 0)
-        decomp_data: bytearray = bytearray()
 
         if isinstance(oFirstTag, bytes):
-            tailLength = len(p.Data) - zLen
-            decompRecords = FLZ.decompress(oFirstTag, 0, len(oFirstTag))
-            decomp_data = bytearray(decompRecords) + p.Data[zLen:]
+            tail_length = len(p.Data) - zLen
+            decomp_records = FLZ.decompress(oFirstTag, 0, len(oFirstTag))
+            decomp_data = bytearray(len(decomp_records) + tail_length) + p.Data[zLen:]
         else:
             decomp_data = p.Data
 
-        decomp_data = p.Data
         tp = 0
         sum_tp: int = 0
         while tp < len(decomp_data):
@@ -794,7 +793,7 @@ class M4Protocol(Protocol):
             recLen = lenLen[1]
 
             if recLen == 0:
-                self.next_record = oTime
+                next_record = oTime
                 break
 
             r = M4ArchiveRecord()
@@ -829,10 +828,10 @@ class M4Protocol(Protocol):
 
             lr.append(r)
 
-        if self.next_record != datetime.min and len(lr) > 0 and self.next_record <= lr[-1].dt:
+        if next_record != datetime.min and len(lr) > 0 and next_record <= lr[-1].dt:
             raise ECommException(ExcSeverity.Stop, CommError.Unspecified, "зацикливание датировки архивных записей")
 
-        return lr
+        return lr, next_record
 
     def get_device_clock(self, meter: Meter, src: bytes, dst: bytes) -> datetime:
         mtd = self.get_meter_instance(meter if isinstance(meter, Logika4) else None, dst)
@@ -1172,9 +1171,9 @@ class M4Protocol(Protocol):
 
         t_start = rs.t_ptr if rs.t_ptr != datetime.min else start
 
-        self.read_archive_m4(m, nt, bytes(0), self.PARTITION_CURRENT, rs.current_channel, archive_code, t_start, end, 64)
+        packet, result, next_ptr = self.read_archive_m4(m, nt, bytes(0), self.PARTITION_CURRENT, rs.current_channel, archive_code, t_start, end, 64)
 
-        for r in self.result:
+        for r in result:
             self.fix_intv_timestamp(r, ar.ArchiveType, mtd)
 
             row = ar.table.rows.find(r.dt)
@@ -1195,9 +1194,9 @@ class M4Protocol(Protocol):
         n_parts = (rs.current_channel - ch_start) * total_intervals_per_ch + rs.n_ch_recs_read
         self.progress = min(100.0, 100.0 * n_parts / total_rec_parts)
 
-        rs.t_ptr = self.next_ptr
+        rs.t_ptr = next_ptr
 
-        if self.next_ptr == datetime.min or self.next_ptr > end:
+        if next_ptr == datetime.min or next_ptr > end:
             rs.t_ptr = datetime.min
             rs.n_ch_recs_read = 0
             rs.current_channel += 1
@@ -1254,11 +1253,11 @@ class M4Protocol(Protocol):
         tmp_list = []
 
         for ch in range(ch_start, ch_end + 1):
-            self.read_archive_m4(m4m, nt, bytes(0), self.PARTITION_CURRENT, bytes(ch), archive_code, t_start, end, 64)
-            for r in self.result:
+            packet, result, next_ptr = self.read_archive_m4(m4m, nt, bytes(0), self.PARTITION_CURRENT, bytes(ch), archive_code, t_start, end, 64)
+            for r in result:
                 evt = self.archive_rec_to_service_rec(m4m, ar.ArchiveType, ch, r)
                 tmp_list.append(evt)
-            next_ptrs[ch - ch_start] = self.next_ptr
+            next_ptrs[ch - ch_start] = next_ptr
 
         t_ptr = datetime.min
         for np in next_ptrs:

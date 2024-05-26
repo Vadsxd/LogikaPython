@@ -13,10 +13,10 @@ from Logika.Meters.DataTag import DataTag
 from Logika.Meters.Logika4 import Logika4
 from Logika.Meters.Meter import Meter
 from Logika.Meters.Types import BusProtocolType, ArchiveType
+from Logika.Meters.__4L.Logika4L import Logika4L
 from Logika.Protocols.M4.ErrorCode import ErrorCode
 from Logika.Protocols.M4.M4Opcode import M4Opcode
 from Logika.Protocols.M4.M4Protocol import M4Protocol
-from Logika.Meters.__4L.Logika4L import Logika4L
 from Logika.Protocols.SPBus.SPBusProtocol import SPBusProtocol
 
 
