@@ -51,7 +51,7 @@ class MeterInstance:
     def model(self):
         if self.model is None:
             if ImportantTag.Model in self.vipTags:
-                self.proto.update_tags(self.nt, self.vipTags[ImportantTag.Model], updTagsFlags.DontGetEUs)
+                self.proto.update_tags_impl(self.nt, self.vipTags[ImportantTag.Model], updTagsFlags.DontGetEUs)
                 self.model = str(self.vipTags[ImportantTag.Model][0].Value)
             else:
                 self.model = ""
@@ -71,7 +71,7 @@ class MeterInstance:
 
     def read_rdrh(self):
         rdta = [self.vipTags[ImportantTag.RDay][0], self.vipTags[ImportantTag.RHour][0]]
-        self.proto.update_tags(self.nt, rdta, updTagsFlags.DontGetEUs)
+        self.proto.update_tags_impl(self.nt, rdta, updTagsFlags.DontGetEUs)
         self.rd = int(rdta[0].Value)
         self.rh = int(rdta[1].Value)
 
@@ -79,19 +79,19 @@ class MeterInstance:
     def eu_dict(self):
         if self.eus is None:
             if ImportantTag.EngUnits in self.vipTags:
-                self.proto.update_tags(self.nt, self.vipTags[ImportantTag.EngUnits], updTagsFlags.DontGetEUs)
+                self.proto.update_tags_impl(self.nt, self.vipTags[ImportantTag.EngUnits], updTagsFlags.DontGetEUs)
                 self.eus = self.mtr.build_eu_dict(self.vipTags[ImportantTag.EngUnits])
         return self.eus
 
     @property
     def current_device_time(self):
         if self.timeDiff == float('inf'):
-            tTime = self.mtr.Tags.Find("ОБЩ", "T")
-            tDate = self.mtr.Tags.Find("ОБЩ", "Д")
+            tTime = self.mtr.tags.Find("ОБЩ", "T")
+            tDate = self.mtr.tags.Find("ОБЩ", "Д")
             if tTime is None or tDate is None:
                 return datetime.min
             dta = [DataTag(tDate, 0), DataTag(tTime, 0)]
-            self.proto.update_tags(self.nt, dta, updTagsFlags.DontGetEUs)
+            self.proto.update_tags_impl(self.nt, dta, updTagsFlags.DontGetEUs)
             devTime = Logika4.combine_date_time(str(dta[0].Value), str(dta[1].Value))
             self.timeDiff = datetime.now() - devTime
         return datetime.now() - self.timeDiff
@@ -840,7 +840,17 @@ class M4Protocol(Protocol):
     def update_tags(self, src, dst, tags: List[DataTag]):
         if len(tags) == 0:
             return
-        self.update_tags(dst, tags, updTagsFlags.Zero)
+        self.update_tags_impl(dst, tags, updTagsFlags.Zero)
+
+    def update_tags_impl(self, nt: bytearray, tags: List[DataTag], flags: updTagsFlags):
+        meter_4 = tags[0].deffinition.Meter.__class__ = Logika4()
+        mmd = self.get_meter_instance(meter_4, nt)
+        m = tags[0].deffinition.Meter
+
+        if isinstance(m, Logika4L):
+            self.update4L_tags_values(nt, tags, mmd, flags)
+        elif isinstance(m, Logika4M):
+            self.update_tags4M(nt, tags, mmd, flags)
 
     def get_flash_pages_to_cache(self, mtr, nt, startPageNo, count, mi):
         if count <= 0 or startPageNo < 0:
