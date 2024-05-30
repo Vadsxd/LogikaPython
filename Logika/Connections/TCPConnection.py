@@ -9,12 +9,16 @@ from Logika.ECommException import ECommException, ExcSeverity, CommError
 
 
 class TCPConnection(NetConnection):
+    socket = None
+
     def __init__(self, read_timeout: int, host: str, port: int):
         super().__init__(read_timeout, host, port)
-        self.socket: socket = None
         self.WSAETIMEDOUT: int = 10060
         self.connect_ended: threading = threading.Event()
         self.connect_exception = None
+        self.host = host
+        self.port = port
+        self.readTimeout = read_timeout
 
     def dispose(self, disposing: bool):
         if disposing:
@@ -55,7 +59,7 @@ class TCPConnection(NetConnection):
             self.socket = None
 
     def on_set_read_timeout(self, new_timeout: int):
-        if self.socket:
+        if TCPConnection.socket:
             self.socket.settimeout(new_timeout)
 
     def on_connect(self):
@@ -72,16 +76,16 @@ class TCPConnection(NetConnection):
         if not isinstance(target, TCPConnection):
             return False
         TarCon = target
-        return TarCon.mSrvHostName == self.mSrvHostName and TarCon.mSrvPort == self.mSrvPort
+        return TarCon.m_srv_host_name == self.m_srv_host_name and TarCon.m_srv_port == self.m_srv_port
 
     def internal_read(self, buf: bytes, start: int, max_length: int):
         errcode = 0
         nBytes: int = 0
 
-        if not self.socket.poll(self.ReadTimeout * 1000):
+        if not self.socket.poll(self.readTimeout * 1000):
             raise ECommException(ExcSeverity.Error, CommError.Timeout)
 
-        if self.State != ConnectionState.Connected or self.socket is None:
+        if self.state != ConnectionState.Connected or self.socket is None:
             return 0
 
         try:
@@ -108,7 +112,7 @@ class TCPConnection(NetConnection):
             raise ECommException(ExcSeverity.Reset, CommError.SystemError, errcode.__str__())
 
     def internal_purge_comms(self, flg: PurgeFlags):
-        if self.State != ConnectionState.Connected:
+        if self.state != ConnectionState.Connected:
             return
 
         if flg & PurgeFlags.RX:

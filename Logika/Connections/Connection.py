@@ -146,8 +146,8 @@ class Connection(ABC):
     def resource_name(self):
         return None
 
-    def open(self):
-        with threading.Lock:
+    async def open(self):
+        async with threading.Lock:
             self.closing_event.reset()
             self.state = ConnectionState.Connecting
 
