@@ -419,7 +419,7 @@ class Meter(ABC):
     @staticmethod
     def load_res_table(tableName: str) -> list:
         try:
-            metadata = sqlite3.connect('Logika/Resourses/Logika_database')
+            metadata = sqlite3.connect('Logika/Resources/Logika_database')
             metadata.row_factory = sqlite3.Row
             res = []
             cur = metadata.cursor()
