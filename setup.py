@@ -5,15 +5,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="Logika",
-    version="0.0.1",
-    author="author",
-    author_email="author@example.com",
-    description="short package description",
+    version="0.0.2",
+    author="Vadsxd",
+    author_email="vadim.sannikov.2018@mail.ru",
+    description="Logika libs Python Realization",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="package URL",
+    url="https://github.com/Vadsxd/LogikaPython/Logika",
     project_urls={
-        "Bug Tracker": "package issues URL",
+        "repository": "https://github.com/Vadsxd/LogikaPython",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -22,5 +22,5 @@ setuptools.setup(
     ],
     package_dir={"": "Logika"},
     packages=setuptools.find_packages(where="Logika"),
-    python_requires=">=3.4"
+    python_requires=">=3.11"
 )

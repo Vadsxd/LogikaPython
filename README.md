@@ -9,3 +9,15 @@ Logika libs Python Realization
 ## Windows
 + ```python.exe -m pip install --upgrade build```
 + ```python.exe -m build```
+
+# Как загрузить дистрибутивы в PyPI
+## Linux
++ ```python3 -m pip install --upgrade twine```
++ ```python3 -m twine upload --repository testpypi dist/*```
+
+## Windows
++ ```py -m pip install --upgrade twine```
++ ```py -m twine upload --repository testpypi dist/*```
+
+# Как установить пакеты
++ ```pip install -i https://test.pypi.org/simple/ Logika==0.0.2```

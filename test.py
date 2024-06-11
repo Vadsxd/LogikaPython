@@ -1,7 +1,7 @@
-from Logika.Connections.Connection import PurgeFlags
-from Logika.Connections.TCPConnection import TCPConnection
-from Logika.Connections.UDPConnection import UDPConnection
-from Logika.Protocols.M4.M4Protocol import M4Protocol
+from Connections.Connection import PurgeFlags
+from Connections.TCPConnection import TCPConnection
+from Connections.UDPConnection import UDPConnection
+from Protocols.M4.M4Protocol import M4Protocol
 
 
 def test_M4():
