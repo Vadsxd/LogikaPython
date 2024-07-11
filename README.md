@@ -1,5 +1,5 @@
 # LogikaPython
-Logika libs Python Realization
+Перевод библиотек для работы с приборами с C# на Python
 
 # Как сделать дистрибутивы
 ## Linux
